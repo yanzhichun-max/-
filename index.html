@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>活点地图 - Marauder's Map</title>
+    
+    <!-- 高德地图API -->
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: '你的安全密钥',  // ← 替换成你的安全密钥
+        }
+    </script>
+    <script src="https://webapi.amap.com/maps?v=2.0&key=你的API_KEY"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: #f4e4bc;
+        }
+        
+        /* 地图容器 */
+        #map-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        /* 羊皮卷纹理层 */
+        .parchment-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            
+            background: 
+                radial-gradient(ellipse at center, transparent 0%, rgba(139, 69, 19, 0.08) 100%),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(139, 69, 19, 0.03) 2px,
+                    rgba(139, 69, 19, 0.03) 4px
+                ),
+                linear-gradient(
+                    45deg,
+                    rgba(244, 228, 188, 0.1) 0%,
+                    rgba(210, 180, 140, 0.2) 50%,
+                    rgba(244, 228, 188, 0.1) 100%
+                );
+            
+            box-shadow: inset 0 0 100px rgba(139, 69, 19, 0.3);
+        }
+        
+        /* 墨迹噪点效果 */
+        .ink-noise {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 11;
+            opacity: 0.12;
+            
+            background-image: url('data:image/svg+xml,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)"/></svg>');
+        }
+        
+        /* 标题区域 */
+        .title-area {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 20;
+            color: #3d2914;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+        }
+        
+        .title-area h1 {
+            font-size: 24px;
+            font-weight: normal;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+            border-bottom: 2px solid #8b4513;
+            padding-bottom: 5px;
+            display: inline-block;
+        }
+        
+        .title-area p {
+            font-size: 12px;
+            font-style: italic;
+            opacity: 0.7;
+        }
+        
+        /* 用户位置标记容器 */
+        .user-marker {
+            position: absolute;
+            z-index: 15;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            transition: all 0.5s ease-out;
+        }
+        
+        /* 用户位置光圈动画 */
+        .pulse-ring {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #8b4513;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: pulse 2.5s ease-out infinite;
+        }
+        
+        .pulse-ring:nth-child(2) {
+            animation-delay: 0.8s;
+        }
+        
+        .pulse-ring:nth-child(3) {
+            animation-delay: 1.6s;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: translate(-50%, -50%) scale(0.3);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(2.5);
+                opacity: 0;
+            }
+        }
+        
+        /* 用户中心点 */
+        .user-dot {
+            width: 24px;
+            height: 24px;
+            background: radial-gradient(circle at 30% 30%, #a0522d, #5d3a1a);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 
+                0 0 15px rgba(139, 69, 19, 0.9),
+                0 0 30px rgba(139, 69, 19, 0.5),
+                inset 0 2px 4px rgba(255, 255, 255, 0.3);
+        }
+        
+        /* 用户名字标签 */
+        .user-label {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            color: #3d2914;
+            font-size: 14px;
+            font-style: italic;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+            background: linear-gradient(to bottom, rgba(244, 228, 188, 0.95), rgba(244, 228, 188, 0.85));
+            padding: 6px 12px;
+            border-radius: 3px;
+            border: 1px solid rgba(139, 69, 19, 0.4);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* 脚印动画 */
+        .footprint {
+            position: absolute;
+            width: 14px;
+            height: 20px;
+            background: radial-gradient(ellipse, rgba(139, 69, 19, 0.4), transparent);
+            border-radius: 50% 50% 45% 45%;
+            pointer-events: none;
+            z-index: 14;
+            animation: fadeFootprint 4s ease-out forwards;
+        }
+        
+        @keyframes fadeFootprint {
+            0% {
+                opacity: 0.5;
+                transform: scale(1.2) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.4) rotate(-15deg);
+            }
+        }
+        
+        /* 授权提示 */
+        .auth-prompt {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(61, 41, 20, 0.95), transparent);
+            color: #f4e4bc;
+            padding: 80px 20px 25px;
+            text-align: center;
+            z-index: 100;
+            transition: opacity 0.6s ease-out;
+        }
+        
+        .auth-prompt.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .auth-prompt p {
+            font-size: 15px;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+        
+        .auth-btn {
+            background: linear-gradient(to bottom, #8b4513, #5d3a1a);
+            color: #f4e4bc;
+            border: 2px solid #a0522d;
+            padding: 12px 30px;
+            font-family: 'Georgia', serif;
+            font-size: 15px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .auth-btn:hover {
+            background: linear-gradient(to bottom, #a0522d, #8b4513);
+            box-shadow: 0 0 20px rgba(139, 69, 19, 0.7);
+            transform: translateY(-2px);
+        }
+        
+        /* 状态栏 */
+        .status-bar {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, rgba(244, 228, 188, 0.98), rgba(244, 228, 188, 0.95));
+            border: 1px solid #8b4513;
+            padding: 10px 18px;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #3d2914;
+            z-index: 20;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            font-family: monospace;
+        }
+        
+        /* 加载提示 */
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #8b4513;
+            font-size: 18px;
+            font-style: italic;
+            z-index: 50;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="map-container">
+        <!-- 羊皮卷纹理层 -->
+        <div class="parchment-overlay"></div>
+        <div class="ink-noise"></div>
+        
+        <!-- 标题 -->
+        <div class="title-area">
+            <h1>Mischief Managed</h1>
+            <p>活点地图 - 实时追踪</p>
+        </div>
+        
+        <!-- 加载提示 -->
+        <div class="loading" id="loadingText">正在加载魔法地图...</div>
+        
+        <!-- 用户位置标记 -->
+        <div class="user-marker" id="userMarker" style="display: none;">
+            <div class="pulse-ring"></div>
+            <div class="pulse-ring"></div>
+            <div class="pulse-ring"></div>
+            <div class="user-dot"></div>
+            <div class="user-label">燕知春</div>
+        </div>
+        
+        <!-- 授权提示 -->
+        <div class="auth-prompt" id="authPrompt">
+            <p>恶作剧完毕？活点地图需要您的位置授权</p>
+            <button class="auth-btn" onclick="requestLocation()">授权定位</button>
+        </div>
+        
+        <!-- 状态栏 -->
+        <div class="status-bar" id="statusBar">等待魔法...</div>
+    </div>
+
+    <script>
+        let map = null;
+        let userPosition = null;
+        let lastFootprintTime = 0;
+        let mapLoaded = false;
+        
+        // 初始化地图
+        function initMap() {
+            try {
+                map = new AMap.Map('map-container', {
+                    zoom: 17,
+                    center: [118.746435, 31.970430], // 初始中心点（南京）
+                    viewMode: '2D',
+                    mapStyle: 'amap://styles/normal',
+                    features: ['bg', 'road', 'building'],
+                    showLabel: true,
+                    pitch: 0
+                });
+                
+                // 等待地图加载完成
+                map.on('complete', function() {
+                    mapLoaded = true;
+                    document.getElementById('loadingText').style.display = 'none';
+                    document.getElementById('statusBar').textContent = '魔法地图已就绪';
+                });
+                
+                // 地图加载失败
+                map.on('error', function(e) {
+                    document.getElementById('loadingText').textContent = '地图加载失败，请检查API Key';
+                    console.error('地图加载错误:', e);
+                });
+                
+            } catch (error) {
+                document.getElementById('loadingText').textContent = '地图初始化失败：' + error.message;
+                console.error('初始化错误:', error);
+            }
+        }
+        
+        // 请求位置授权
+        function requestLocation() {
+            const statusBar = document.getElementById('statusBar');
+            statusBar.textContent = '正在施展追踪咒语...';
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(
+                    updatePosition,
+                    handleError,
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                statusBar.textContent = '这个设备不支持魔法定位';
+            }
+        }
+        
+        // 更新位置
+        function updatePosition(position) {
+            if (!mapLoaded) {
+                // 等待地图加载
+                setTimeout(() => updatePosition(position), 500);
+                return;
+            }
+            
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            // 隐藏授权提示
+            document.getElementById('authPrompt').classList.add('hidden');
+            
+            // 更新状态
+            const statusBar = document.getElementById('statusBar');
+            statusBar.textContent = `📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            
+            // 如果是第一次定位
+            if (!userPosition) {
+                userPosition = [lng, lat];
+                
+                // 移动地图到用户位置
+                map.setCenter(userPosition);
+                
+                // 显示用户标记
+                const userMarker = document.getElementById('userMarker');
+                userMarker.style.display = 'block';
+                
+                // 设置初始位置
+                updateUserMarkerPosition();
+                
+            } else {
+                // 计算移动距离
+                const distance = calculateDistance(userPosition[1], userPosition[0], lat, lng);
+                
+                // 如果移动超过3米，创建脚印
+                if (distance > 3) {
+                    createFootprint(userPosition[0], userPosition[1]);
+                }
+                
+                // 更新位置
+                userPosition = [lng, lat];
+                
+                // 更新标记位置
+                updateUserMarkerPosition();
+            }
+            
+            // 平滑移动地图中心到用户位置
+            map.panTo([lng, lat]);
+        }
+        
+        // 更新用户标记在屏幕上的位置
+        function updateUserMarkerPosition() {
+            if (!map || !userPosition) return;
+            
+            try {
+                const pixel = map.lnglatToContainer(userPosition);
+                const userMarker = document.getElementById('userMarker');
+                
+                // 转换为相对于容器的坐标
+                const container = document.getElementById('map-container');
+                const rect = container.getBoundingClientRect();
+                
+                userMarker.style.left = (pixel.x) + 'px';
+                userMarker.style.top = (pixel.y) + 'px';
+                
+            } catch (error) {
+                console.error('更新标记位置失败:', error);
+            }
+        }
+        
+        // 监听地图移动，更新标记位置
+        function setupMarkerTracking() {
+            if (!map) return;
+            
+            map.on('moveend', function() {
+                updateUserMarkerPosition();
+            });
+            
+            map.on('zoomend', function() {
+                updateUserMarkerPosition();
+            });
+        }
+        
+        // 计算两点之间的距离（米）
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371e3;
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lng2 - lng1) * Math.PI / 180;
+            
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            
+            return R * c;
+        }
+        
+        // 创建脚印效果
+        function createFootprint(lng, lat) {
+            const now = Date.now();
+            if (now - lastFootprintTime < 1500) return;
+            
+            lastFootprintTime = now;
+            
+            try {
+                const pixel = map.lnglatToContainer([lng, lat]);
+                
+                const footprint = document.createElement('div');
+                footprint.className = 'footprint';
+                footprint.style.left = (pixel.x - 7) + 'px';
+                footprint.style.top = (pixel.y - 10) + 'px';
+                footprint.style.transform = `rotate(${Math.random() * 40 - 20}deg)`;
+                
+                document.getElementById('map-container').appendChild(footprint);
+                
+                setTimeout(() => {
+                    footprint.remove();
+                }, 4000);
+                
+            } catch (error) {
+                console.error('创建脚印失败:', error);
+            }
+        }
+        
+        // 处理错误
+        function handleError(error) {
+            const statusBar = document.getElementById('statusBar');
+            let errorMsg = '';
+            
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMsg = '您拒绝了追踪咒语';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMsg = '魔法无法感应到您的位置';
+                    break;
+                case error.TIMEOUT:
+                    errorMsg = '追踪咒语超时了';
+                    break;
+                default:
+                    errorMsg = '未知魔法错误';
+            }
+            
+            statusBar.textContent = '❌ ' + errorMsg;
+        }
+        
+        // 页面加载完成后初始化
+        window.onload = function() {
+            initMap();
+            
+            // 等待地图加载完成后设置标记追踪
+            setTimeout(function() {
+                if (mapLoaded) {
+                    setupMarkerTracking();
+                }
+            }, 2000);
+        };
+    </script>
+</body>
+</html>

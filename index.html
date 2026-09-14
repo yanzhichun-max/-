@@ -12,16 +12,13 @@
 
   #map-container{position:fixed;inset:0;background:#F2E2BD;z-index:1;}
 
-  /* ★★★ 核心：把 OSM 瓦片"榨"成墨线 + 卷轴色 ★★★ */
+  /* 瓦片榨成墨线+卷轴色 */
   .leaflet-tile-pane{
     filter:grayscale(1) brightness(.8) contrast(2.4) sepia(1) saturate(1.3) hue-rotate(-6deg);
   }
 
-  /* 纸张颗粒 */
   .noise{position:fixed;inset:0;z-index:10;pointer-events:none;opacity:.12;
     background-image:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)"/></svg>');}
-
-  /* 四角压暗，像旧纸 */
   .vignette{position:fixed;inset:0;z-index:11;pointer-events:none;
     box-shadow:inset 0 0 170px rgba(105,68,22,.5);}
 
@@ -55,28 +52,25 @@
     border:2px solid #A0713C;border-radius:5px;padding:12px 30px;
     font-family:Georgia,serif;font-size:15px;cursor:pointer;}
 
-  /* 位置标记 */
-  .mk{position:relative;width:0;height:0;}
-  .mk .ring{position:absolute;left:0;top:0;width:74px;height:74px;
-    margin:-37px 0 0 -37px;border:2px solid rgba(70,42,14,.6);border-radius:50%;
-    animation:pulse 2.6s ease-out infinite;}
-  .mk .ring:nth-child(2){animation-delay:.85s;}
-  .mk .ring:nth-child(3){animation-delay:1.7s;}
-  @keyframes pulse{0%{transform:scale(.22);opacity:.95;}100%{transform:scale(1.65);opacity:0;}}
-  .mk .dot{position:absolute;left:0;top:0;width:22px;height:22px;
-    margin:-11px 0 0 -11px;border-radius:50%;
-    background:radial-gradient(circle at 32% 30%,#B06B32,#4A2A0C);
-    box-shadow:0 0 12px rgba(70,42,14,.9);}
-  .mk .nm{position:absolute;left:0;top:-46px;transform:translateX(-50%);
-    white-space:nowrap;font-size:14px;font-style:italic;font-weight:bold;color:#3A2410;
-    background:rgba(246,233,203,.94);border:1px solid rgba(107,74,34,.5);
-    border-radius:3px;padding:4px 10px;text-shadow:0 1px 2px rgba(255,255,255,.8);}
+  /* =====★ 名字：只有墨字，没有圈、没有点 ★===== */
+  .nm{
+    position:absolute; left:0; bottom:6px; transform:translateX(-50%);
+    white-space:nowrap;
+    font-family:"STKaiti","Kaiti SC","KaiTi","Kaiti","Songti SC",Georgia,serif;
+    font-size:16px; font-weight:600; letter-spacing:1.5px;
+    color:#2E1B08;
+    text-shadow:0 0 3px rgba(246,233,203,.95), 0 1px 2px rgba(246,233,203,.9);
+  }
 
-  /* 脚印 */
-  .fp{width:16px;height:22px;border-radius:50% 50% 45% 45%;
-    background:radial-gradient(ellipse at center,rgba(74,42,12,.5),rgba(74,42,12,0) 75%);
-    animation:fpOut 4s ease-out forwards;}
-  @keyframes fpOut{0%{opacity:.6;}100%{opacity:0;}}
+  /* =====★ 脚印 ★===== */
+  .fpw{position:absolute;left:0;top:0;width:0;height:0;}
+  .fp{
+    position:absolute; left:-3.5px; top:-8px; width:7px; height:16px;
+    background:radial-gradient(ellipse at 50% 35%, #2E1B08 0%, #2E1B08 45%, rgba(46,27,8,0) 92%);
+    border-radius:50% 50% 42% 42% / 58% 58% 42% 42%;
+    animation:fpFade 9s ease-out forwards;
+  }
+  @keyframes fpFade{0%{opacity:.55;}60%{opacity:.42;}100%{opacity:0;}}
 
   .leaflet-control-attribution{font-size:9px!important;
     background:rgba(246,233,203,.7)!important;color:#6B4A22!important;}
@@ -91,7 +85,7 @@
 
 <div class="title"><h1>Mischief Managed</h1><p>活点地图 · 实时追踪</p></div>
 
-<button class="btn" id="srcBtn">瓦片源：切换中</button>
+<button class="btn" id="srcBtn">瓦片源</button>
 <button class="btn" id="recenter" style="display:none">◉ 回到我的位置</button>
 
 <div class="status" id="status">正在加载魔法地图…</div>
@@ -103,26 +97,37 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/* ===== 4 个瓦片源，点按钮轮换，哪个快用哪个 ===== */
+/* ================= 可调参数（都在这里改） ================= */
+var CFG={
+  name:'燕知春',
+  showFootprints:true,   // 不要脚印 → 改成 false
+  trailLife:9000,        // 脚印留多久（毫秒）
+  stepMeters:3,          // 每走多少米画一只脚印
+  minMoveMeters:2.5,     // 移动超过这个距离才开始留脚印
+  maxStepsPerUpdate:8,   // 单次最多补几只脚印
+  maxFootprints:70,      // 屏幕上最多同时存在几只（防卡顿）
+  zoom:17
+};
+
+/* ================= 瓦片源（德国源默认放第一个） ================= */
 var SOURCES=[
-  {n:'OSM 官方', u:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-   a:'&copy; OpenStreetMap contributors', mz:19},
   {n:'OSM 德国', u:'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
    a:'&copy; OpenStreetMap contributors', mz:18},
+  {n:'OSM 官方', u:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+   a:'&copy; OpenStreetMap contributors', mz:19},
   {n:'OSM 法国', u:'https://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png',
    a:'&copy; OpenStreetMap France', mz:19},
   {n:'CARTO 素', u:'https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
    a:'&copy; OpenStreetMap &copy; CARTO', mz:19}
 ];
 var si=0, tileLayer=null;
-var map=null, meMarker=null, lastFix=null, lastFp=0;
 function $(id){return document.getElementById(id);}
 
-/* ===== 初始化（Leaflet 坐标是 [纬度, 经度]） ===== */
+/* ================= 地图 ================= */
 var HOME=[31.970430, 118.746435];
-map=L.map('map-container',{
+var map=L.map('map-container',{
   zoomControl:false, attributionControl:true,
-  center:HOME, zoom:17, zoomSnap:1, zoomDelta:1
+  center:HOME, zoom:CFG.zoom, zoomSnap:1, zoomDelta:1
 });
 addTiles();
 
@@ -135,10 +140,16 @@ function addTiles(){
   tileLayer.on('tileerror',function(){
     $('status').innerHTML='⚠️ 瓦片加载失败，点左下「瓦片源」换一个';
   });
-  $('srcBtn').textContent='瓦片源：'+s.n;
 }
 
-/* ===== 定位：OSM 就是 WGS-84，直接用，不转换 ===== */
+/* ================= 状态 ================= */
+var meMarker=null, lastFix=null, lastFp=0, sideFlip=1;
+var fpList=[], follow=true;
+
+/* 用户自己拖地图 → 暂停自动跟随 */
+map.on('dragstart',function(){ follow=false; });
+
+/* ================= 定位（OSM 是 WGS-84，直接用，不转换） ================= */
 function requestLocation(){
   if(!navigator.geolocation){ $('status').textContent='❌ 设备不支持定位'; return; }
   $('status').textContent='正在施展追踪咒语…';
@@ -157,13 +168,15 @@ function onFix(pos){
   $('status').innerHTML='精度 <b>±'+acc+'m</b>　'+lat.toFixed(6)+', '+lng.toFixed(6);
 
   if(!lastFix){
-    map.setView(ll,17);
+    map.setView(ll,CFG.zoom);
     ensureMarker(ll);
   }else{
     var d=dist(lastFix[0],lastFix[1],lat,lng);
-    if(d>3) footprint(lastFix);
+    if(d>CFG.minMoveMeters){
+      if(CFG.showFootprints) walkTrail(lastFix,ll);
+      if(follow) map.panTo(ll);
+    }
     ensureMarker(ll);
-    if(d>2) map.panTo(ll);
   }
   lastFix=ll;
 }
@@ -173,30 +186,73 @@ function onErr(e){
   $('status').innerHTML='❌ '+m;
 }
 
-/* ===== 标记 ===== */
-var mkIcon=L.divIcon({
+/* ================= 名字（只有文字） ================= */
+var nameIcon=L.divIcon({
   className:'',
-  html:'<div class="mk"><div class="ring"></div><div class="ring"></div>'+
-       '<div class="ring"></div><div class="dot"></div>'+
-       '<div class="nm">燕知春</div></div>',
+  html:'<div class="nm">'+CFG.name+'</div>',
   iconSize:[0,0], iconAnchor:[0,0]
 });
 
 function ensureMarker(ll){
   if(meMarker){ meMarker.setLatLng(ll); return; }
-  meMarker=L.marker(ll,{icon:mkIcon, interactive:false, zIndexOffset:1000}).addTo(map);
+  meMarker=L.marker(ll,{icon:nameIcon,interactive:false,zIndexOffset:1000}).addTo(map);
 }
 
-var fpIcon=null;
-function footprint(ll){
-  var now=Date.now(); if(now-lastFp<1200) return; lastFp=now;
-  if(!fpIcon) fpIcon=L.divIcon({className:'',html:'<div class="fp"></div>',
-                                iconSize:[0,0],iconAnchor:[0,0]});
-  var m=L.marker(ll,{icon:fpIcon,interactive:false}).addTo(map);
-  setTimeout(function(){ map.removeLayer(m); },4000);
+/* ================= 脚印 ================= */
+function walkTrail(a,b){
+  var now=Date.now();
+  if(now-lastFp<800) return;          // 别刷太密
+  lastFp=now;
+
+  var d=dist(a[0],a[1],b[0],b[1]);
+  var brg=bearing(a[0],a[1],b[0],b[1]);
+  var steps=Math.min(CFG.maxStepsPerUpdate,
+                     Math.max(1, Math.round(d/CFG.stepMeters)));
+
+  for(var i=1;i<=steps;i++){
+    var f=i/(steps+1);
+    var lat=a[0]+(b[0]-a[0])*f;
+    var lng=a[1]+(b[1]-a[1])*f;
+
+    sideFlip=-sideFlip;                       // 左右脚交替
+    var perp=(brg+90)*Math.PI/180;
+    var offM=1.7*sideFlip;                    // 侧向偏移（米）
+    var mLat=111320;
+    var mLng=111320*Math.cos(lat*Math.PI/180);
+    var dLat=Math.cos(perp)*offM/mLat;
+    var dLng=Math.sin(perp)*offM/mLng;
+
+    addFoot([lat+dLat, lng+dLng], brg);
+  }
 }
 
-/* ===== 距离（米） ===== */
+function addFoot(ll,brg){
+  var html='<div class="fpw" style="transform:rotate('+brg.toFixed(1)+'deg)">'+
+             '<div class="fp" style="animation-duration:'+CFG.trailLife+'ms"></div>'+
+           '</div>';
+  var ic=L.divIcon({className:'',html:html,iconSize:[0,0],iconAnchor:[0,0]});
+  var m=L.marker(ll,{icon:ic,interactive:false,zIndexOffset:100}).addTo(map);
+
+  fpList.push(m);
+  if(fpList.length>CFG.maxFootprints){
+    var old=fpList.shift(); map.removeLayer(old);
+  }
+  setTimeout(function(){
+    map.removeLayer(m);
+    var i=fpList.indexOf(m); if(i>-1) fpList.splice(i,1);
+  }, CFG.trailLife+200);
+}
+
+/* ================= 方位角（度，正北为0，顺时针） ================= */
+function bearing(lat1,lng1,lat2,lng2){
+  var r=Math.PI/180;
+  var y=Math.sin((lng2-lng1)*r)*Math.cos(lat2*r);
+  var x=Math.cos(lat1*r)*Math.sin(lat2*r)-
+        Math.sin(lat1*r)*Math.cos(lat2*r)*Math.cos((lng2-lng1)*r);
+  return (Math.atan2(y,x)/r+360)%360;
+}
+
+/* ================= 距离（米） ================= */
 function dist(lat1,lng1,lat2,lng2){
   var R=6371000, r=Math.PI/180;
   var dLat=(lat2-lat1)*r, dLng=(lng2-lng1)*r;
@@ -205,17 +261,22 @@ function dist(lat1,lng1,lat2,lng2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
-/* ===== 按钮 ===== */
+/* ================= 按钮 ================= */
 $('srcBtn').onclick=function(){
   si=(si+1)%SOURCES.length;
   if(tileLayer) map.removeLayer(tileLayer);
   addTiles();
+  $('srcBtn').textContent='瓦片源：'+SOURCES[si].n;
   $('status').textContent='已切换：'+SOURCES[si].n;
 };
-$('recenter').onclick=function(){ if(lastFix) map.setView(lastFix,17); };
+$('recenter').onclick=function(){
+  follow=true;
+  if(lastFix) map.setView(lastFix,CFG.zoom);
+};
 $('authBtn').onclick=requestLocation;
 
 document.addEventListener('gesturestart',function(e){e.preventDefault();});
+$('srcBtn').textContent='瓦片源：'+SOURCES[si].n;
 </script>
 </body>
 </html>

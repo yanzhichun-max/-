@@ -2,90 +2,96 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>活点地图 · 诊断版</title>
-<script>
-  window._AMapSecurityConfig = { securityJsCode: '1403533e1bb3874b4d67fd431be3b02c' };
-</script>
-<script src="https://webapi.amap.com/maps?v=2.0&key=4583254a055bb1a2856ee74568b710c3"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>活点地图 · Marauder's Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{width:100%;height:100%;overflow:hidden;background:#f4e4bc;
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{width:100%;height:100%;overflow:hidden;background:#F2E2BD;
     font-family:Georgia,"Songti SC","STSong",serif;}
-  #map-container{position:fixed;inset:0;}
-  .layer{position:fixed;inset:0;pointer-events:none;}
-  .parchment{z-index:10;
-    background:
-      radial-gradient(ellipse at center,rgba(255,248,230,0) 40%,rgba(139,69,19,.10) 100%),
-      repeating-linear-gradient(0deg,rgba(139,69,19,0) 0,rgba(139,69,19,0) 3px,rgba(139,69,19,.025) 3px,rgba(139,69,19,.025) 6px),
-      linear-gradient(135deg,rgba(244,228,188,.10),rgba(210,180,140,.22) 50%,rgba(244,228,188,.10));
-    box-shadow:inset 0 0 140px rgba(139,69,19,.35);}
-  .noise{z-index:11;opacity:.12;
+
+  #map-container{position:fixed;inset:0;background:#F2E2BD;z-index:1;}
+
+  /* ★★★ 核心：把 OSM 瓦片"榨"成墨线 + 卷轴色 ★★★ */
+  .leaflet-tile-pane{
+    filter:grayscale(1) brightness(.8) contrast(2.4) sepia(1) saturate(1.3) hue-rotate(-6deg);
+  }
+
+  /* 纸张颗粒 */
+  .noise{position:fixed;inset:0;z-index:10;pointer-events:none;opacity:.12;
     background-image:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)"/></svg>');}
 
-  .title{position:fixed;top:18px;left:18px;z-index:20;color:#3d2914;pointer-events:none;
-    text-shadow:1px 1px 2px rgba(255,255,255,.6);}
+  /* 四角压暗，像旧纸 */
+  .vignette{position:fixed;inset:0;z-index:11;pointer-events:none;
+    box-shadow:inset 0 0 170px rgba(105,68,22,.5);}
+
+  .title{position:fixed;top:18px;left:18px;z-index:100;color:#3A2410;pointer-events:none;
+    text-shadow:0 1px 2px rgba(255,250,235,.7);}
   .title h1{font-size:22px;font-weight:400;letter-spacing:2px;
-    border-bottom:2px solid #8b4513;padding-bottom:4px;display:inline-block;}
-  .title p{font-size:12px;font-style:italic;opacity:.75;margin-top:4px;}
+    border-bottom:2px solid #6B4A22;padding-bottom:4px;display:inline-block;}
+  .title p{font-size:12px;font-style:italic;opacity:.8;margin-top:5px;}
 
-  /* 诊断信息面板 */
-  .status{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:40;
-    background:rgba(244,228,188,.96);border:1px solid #8b4513;border-radius:4px;
-    padding:8px 12px;font-size:11px;line-height:1.65;color:#3d2914;
+  .status{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:100;
+    background:rgba(246,233,203,.95);border:1px solid #6B4A22;border-radius:4px;
+    padding:7px 12px;font-size:11px;line-height:1.6;color:#3A2410;
     font-family:Consolas,monospace;white-space:nowrap;
-    box-shadow:0 3px 12px rgba(0,0,0,.25);}
-  .status b{color:#a0522d;}
+    box-shadow:0 3px 12px rgba(60,35,10,.25);}
+  .status b{color:#8B4513;}
 
-  .btn{position:fixed;left:16px;z-index:30;
-    background:linear-gradient(#8b4513,#5d3a1a);color:#f4e4bc;border:2px solid #a0522d;
-    border-radius:5px;padding:9px 14px;font-family:Georgia,serif;font-size:13px;cursor:pointer;}
+  .btn{position:fixed;left:16px;z-index:100;
+    background:linear-gradient(#8B5A2B,#5D3A1A);color:#F6E9CB;border:2px solid #A0713C;
+    border-radius:5px;padding:9px 13px;font-family:Georgia,serif;font-size:12px;cursor:pointer;
+    box-shadow:0 3px 10px rgba(60,35,10,.35);}
   .btn:active{transform:translateY(1px);}
   #recenter{bottom:16px;}
-  #modeBtn{bottom:64px;}
+  #srcBtn{bottom:62px;}
 
-  .auth{position:fixed;inset:auto 0 0 0;z-index:100;text-align:center;color:#f4e4bc;
-    padding:70px 20px 90px;transition:opacity .6s;
-    background:linear-gradient(to top,rgba(61,41,20,.96),rgba(61,41,20,0));}
+  .auth{position:fixed;inset:auto 0 0 0;z-index:200;text-align:center;color:#F6E9CB;
+    padding:70px 20px 95px;transition:opacity .6s;
+    background:linear-gradient(to top,rgba(52,35,16,.96),rgba(52,35,16,0));}
   .auth.hide{opacity:0;pointer-events:none;}
   .auth p{font-size:15px;font-style:italic;margin-bottom:14px;}
-  .auth button{background:linear-gradient(#8b4513,#5d3a1a);color:#f4e4bc;
-    border:2px solid #a0522d;border-radius:5px;padding:12px 30px;
+  .auth button{background:linear-gradient(#8B5A2B,#5D3A1A);color:#F6E9CB;
+    border:2px solid #A0713C;border-radius:5px;padding:12px 30px;
     font-family:Georgia,serif;font-size:15px;cursor:pointer;}
 
+  /* 位置标记 */
   .mk{position:relative;width:0;height:0;}
-  .mk .ring{position:absolute;left:0;top:0;width:72px;height:72px;
-    margin:-36px 0 0 -36px;border:2px solid rgba(139,69,19,.55);border-radius:50%;
+  .mk .ring{position:absolute;left:0;top:0;width:74px;height:74px;
+    margin:-37px 0 0 -37px;border:2px solid rgba(70,42,14,.6);border-radius:50%;
     animation:pulse 2.6s ease-out infinite;}
   .mk .ring:nth-child(2){animation-delay:.85s;}
   .mk .ring:nth-child(3){animation-delay:1.7s;}
-  @keyframes pulse{0%{transform:scale(.22);opacity:.9;}100%{transform:scale(1.6);opacity:0;}}
+  @keyframes pulse{0%{transform:scale(.22);opacity:.95;}100%{transform:scale(1.65);opacity:0;}}
   .mk .dot{position:absolute;left:0;top:0;width:22px;height:22px;
     margin:-11px 0 0 -11px;border-radius:50%;
-    background:radial-gradient(circle at 32% 30%,#b06b32,#5d3a1a);
-    box-shadow:0 0 14px rgba(139,69,19,.9),0 0 30px rgba(139,69,19,.45);}
-  .mk .nm{position:absolute;left:0;top:-44px;transform:translateX(-50%);
-    white-space:nowrap;font-size:14px;font-style:italic;font-weight:bold;color:#3d2914;
-    background:rgba(244,228,188,.92);border:1px solid rgba(139,69,19,.4);
-    border-radius:3px;padding:4px 10px;text-shadow:1px 1px 2px rgba(255,255,255,.8);}
+    background:radial-gradient(circle at 32% 30%,#B06B32,#4A2A0C);
+    box-shadow:0 0 12px rgba(70,42,14,.9);}
+  .mk .nm{position:absolute;left:0;top:-46px;transform:translateX(-50%);
+    white-space:nowrap;font-size:14px;font-style:italic;font-weight:bold;color:#3A2410;
+    background:rgba(246,233,203,.94);border:1px solid rgba(107,74,34,.5);
+    border-radius:3px;padding:4px 10px;text-shadow:0 1px 2px rgba(255,255,255,.8);}
 
+  /* 脚印 */
   .fp{width:16px;height:22px;border-radius:50% 50% 45% 45%;
-    background:radial-gradient(ellipse at center,rgba(139,69,19,.45),rgba(139,69,19,0) 75%);
+    background:radial-gradient(ellipse at center,rgba(74,42,12,.5),rgba(74,42,12,0) 75%);
     animation:fpOut 4s ease-out forwards;}
-  @keyframes fpOut{0%{opacity:.55;}100%{opacity:0;}}
+  @keyframes fpOut{0%{opacity:.6;}100%{opacity:0;}}
+
+  .leaflet-control-attribution{font-size:9px!important;
+    background:rgba(246,233,203,.7)!important;color:#6B4A22!important;}
+  .leaflet-control-attribution a{color:#6B4A22!important;}
 </style>
 </head>
 <body>
+
 <div id="map-container"></div>
-<div class="layer parchment"></div>
-<div class="layer noise"></div>
+<div class="noise"></div>
+<div class="vignette"></div>
 
-<div class="title">
-  <h1>Mischief Managed</h1>
-  <p>活点地图 · 诊断模式</p>
-</div>
+<div class="title"><h1>Mischief Managed</h1><p>活点地图 · 实时追踪</p></div>
 
-<button class="btn" id="modeBtn">坐标系：已转换 GCJ</button>
+<button class="btn" id="srcBtn">瓦片源：切换中</button>
 <button class="btn" id="recenter" style="display:none">◉ 回到我的位置</button>
 
 <div class="status" id="status">正在加载魔法地图…</div>
@@ -95,125 +101,102 @@
   <button id="authBtn">授权定位</button>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/* ===== WGS-84 → GCJ-02 ===== */
-var PI=Math.PI, A=6378245.0, EE=0.00669342162296594323;
-function outOfChina(lng,lat){return !(lng>73.66&&lng<135.05&&lat>3.86&&lat<53.55);}
-function tLat(lng,lat){
-  var r=-100+2*lng+3*lat+0.2*lat*lat+0.1*lng*lat+0.2*Math.sqrt(Math.abs(lng));
-  r+=(20*Math.sin(6*lng*PI)+20*Math.sin(2*lng*PI))*2/3;
-  r+=(20*Math.sin(lat*PI)+40*Math.sin(lat/3*PI))*2/3;
-  r+=(160*Math.sin(lat/12*PI)+320*Math.sin(lat*PI/30))*2/3;
-  return r;
-}
-function tLng(lng,lat){
-  var r=300+lng+2*lat+0.1*lng*lng+0.1*lng*lat+0.1*Math.sqrt(Math.abs(lng));
-  r+=(20*Math.sin(6*lng*PI)+20*Math.sin(2*lng*PI))*2/3;
-  r+=(20*Math.sin(lng*PI)+40*Math.sin(lng/3*PI))*2/3;
-  r+=(150*Math.sin(lng/12*PI)+300*Math.sin(lng/30*PI))*2/3;
-  return r;
-}
-function wgs84ToGcj02(lng,lat){
-  if(outOfChina(lng,lat)) return [lng,lat];
-  var dLat=tLat(lng-105.0,lat-35.0), dLng=tLng(lng-105.0,lat-35.0);
-  var radLat=lat/180.0*PI, magic=Math.sin(radLat);
-  magic=1-EE*magic*magic;
-  var sq=Math.sqrt(magic);
-  dLat=(dLat*180.0)/((A*(1-EE))/(magic*sq)*PI);
-  dLng=(dLng*180.0)/(A/sq*Math.cos(radLat)*PI);
-  return [lng+dLng, lat+dLat];
-}
-
-/* ===== 状态 ===== */
-var MODE='gcj';                 /* 'gcj' = 做转换 | 'raw' = 不转换 */
-var map=null, meMarker=null, ready=false;
-var lastRaw=null, lastAcc='?', lastFix=null, lastFp=0;
+/* ===== 4 个瓦片源，点按钮轮换，哪个快用哪个 ===== */
+var SOURCES=[
+  {n:'OSM 官方', u:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+   a:'&copy; OpenStreetMap contributors', mz:19},
+  {n:'OSM 德国', u:'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
+   a:'&copy; OpenStreetMap contributors', mz:18},
+  {n:'OSM 法国', u:'https://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png',
+   a:'&copy; OpenStreetMap France', mz:19},
+  {n:'CARTO 素', u:'https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+   a:'&copy; OpenStreetMap &copy; CARTO', mz:19}
+];
+var si=0, tileLayer=null;
+var map=null, meMarker=null, lastFix=null, lastFp=0;
 function $(id){return document.getElementById(id);}
 
-function initMap(){
-  map=new AMap.Map('map-container',{
-    zoom:17, center:[118.746435,31.970430], viewMode:'2D',
-    mapStyle:'amap://styles/normal',
-    features:['bg','road','building'], showLabel:true
+/* ===== 初始化（Leaflet 坐标是 [纬度, 经度]） ===== */
+var HOME=[31.970430, 118.746435];
+map=L.map('map-container',{
+  zoomControl:false, attributionControl:true,
+  center:HOME, zoom:17, zoomSnap:1, zoomDelta:1
+});
+addTiles();
+
+function addTiles(){
+  var s=SOURCES[si];
+  tileLayer=L.tileLayer(s.u,{
+    maxZoom:s.mz, maxNativeZoom:s.mz, minZoom:3,
+    attribution:s.a, crossOrigin:true
+  }).addTo(map);
+  tileLayer.on('tileerror',function(){
+    $('status').innerHTML='⚠️ 瓦片加载失败，点左下「瓦片源」换一个';
   });
-  map.on('complete',function(){
-    ready=true;
-    $('status').innerHTML='地图已就绪，等待定位…';
-  });
-  map.on('error',function(e){
-    $('status').innerHTML='❌ 地图加载失败，检查 Key / 域名白名单';
-    console.error(e);
-  });
+  $('srcBtn').textContent='瓦片源：'+s.n;
 }
 
+/* ===== 定位：OSM 就是 WGS-84，直接用，不转换 ===== */
 function requestLocation(){
-  if(!navigator.geolocation){ $('status').innerHTML='❌ 设备不支持定位'; return; }
-  $('status').innerHTML='正在施展追踪咒语…';
+  if(!navigator.geolocation){ $('status').textContent='❌ 设备不支持定位'; return; }
+  $('status').textContent='正在施展追踪咒语…';
   navigator.geolocation.watchPosition(onFix,onErr,{
     enableHighAccuracy:true, timeout:15000, maximumAge:0
   });
 }
 
 function onFix(pos){
-  if(!ready){ setTimeout(function(){onFix(pos);},400); return; }
-  lastRaw=[pos.coords.longitude, pos.coords.latitude];
-  lastAcc=(pos.coords.accuracy!=null)?Math.round(pos.coords.accuracy):'?';
+  var lat=pos.coords.latitude, lng=pos.coords.longitude;
+  var acc=(pos.coords.accuracy!=null)?Math.round(pos.coords.accuracy):'?';
+  var ll=[lat,lng];
+
   $('auth').classList.add('hide');
-  render(true);
-}
-
-/* 根据当前模式定位、画点、刷状态 */
-function render(isNew){
-  if(!lastRaw) return;
-  var gcj=wgs84ToGcj02(lastRaw[0], lastRaw[1]);
-  var use=(MODE==='gcj')?gcj:lastRaw;
-
-  var m=$('modeBtn');
-  m.textContent='坐标系：'+(MODE==='gcj'?'已转换 GCJ':'原始 WGS');
-
-  $('status').innerHTML=
-    '精度 <b>±'+lastAcc+'m</b>　模式 <b>'+(MODE==='gcj'?'转换后':'原始')+'</b><br>'+
-    'WGS '+lastRaw[1].toFixed(6)+', '+lastRaw[0].toFixed(6)+'<br>'+
-    'GCJ '+gcj[1].toFixed(6)+', '+gcj[0].toFixed(6);
-
-  if(!lastFix || isNew===false){
-    if(meMarker) meMarker.setPosition(use);
-    else ensureMarker(use);
-    map.setZoomAndCenter(17, use);
-  }else{
-    var d=dist(lastFix[1],lastFix[0],use[1],use[0]);
-    if(d>3) createFootprint(lastFix);
-    ensureMarker(use);
-    if(d>2) map.panTo(use);
-  }
-  if(isNew) lastFix=use; else lastFix=use;
-
   $('recenter').style.display='block';
-}
+  $('status').innerHTML='精度 <b>±'+acc+'m</b>　'+lat.toFixed(6)+', '+lng.toFixed(6);
 
-function ensureMarker(lnglat){
-  if(meMarker){ meMarker.setPosition(lnglat); return; }
-  var el=document.createElement('div');
-  el.className='mk';
-  el.innerHTML='<div class="ring"></div><div class="ring"></div><div class="ring"></div>'+
-               '<div class="dot"></div><div class="nm">燕知春</div>';
-  meMarker=new AMap.Marker({position:lnglat, content:el, anchor:'center', zIndex:200});
-  map.add(meMarker);
+  if(!lastFix){
+    map.setView(ll,17);
+    ensureMarker(ll);
+  }else{
+    var d=dist(lastFix[0],lastFix[1],lat,lng);
+    if(d>3) footprint(lastFix);
+    ensureMarker(ll);
+    if(d>2) map.panTo(ll);
+  }
+  lastFix=ll;
 }
 
 function onErr(e){
-  var msg={1:'你拒绝了追踪咒语',2:'魔法感应不到你的位置',3:'追踪咒语超时'}[e.code]||'未知魔法错误';
-  $('status').innerHTML='❌ '+msg;
+  var m={1:'你拒绝了追踪咒语',2:'魔法感应不到你的位置',3:'追踪咒语超时'}[e.code]||'未知魔法错误';
+  $('status').innerHTML='❌ '+m;
 }
 
-function createFootprint(lnglat){
+/* ===== 标记 ===== */
+var mkIcon=L.divIcon({
+  className:'',
+  html:'<div class="mk"><div class="ring"></div><div class="ring"></div>'+
+       '<div class="ring"></div><div class="dot"></div>'+
+       '<div class="nm">燕知春</div></div>',
+  iconSize:[0,0], iconAnchor:[0,0]
+});
+
+function ensureMarker(ll){
+  if(meMarker){ meMarker.setLatLng(ll); return; }
+  meMarker=L.marker(ll,{icon:mkIcon, interactive:false, zIndexOffset:1000}).addTo(map);
+}
+
+var fpIcon=null;
+function footprint(ll){
   var now=Date.now(); if(now-lastFp<1200) return; lastFp=now;
-  var el=document.createElement('div'); el.className='fp';
-  var mk=new AMap.Marker({position:lnglat, content:el, anchor:'center', zIndex:50});
-  map.add(mk);
-  setTimeout(function(){ map.remove(mk); },4000);
+  if(!fpIcon) fpIcon=L.divIcon({className:'',html:'<div class="fp"></div>',
+                                iconSize:[0,0],iconAnchor:[0,0]});
+  var m=L.marker(ll,{icon:fpIcon,interactive:false}).addTo(map);
+  setTimeout(function(){ map.removeLayer(m); },4000);
 }
 
+/* ===== 距离（米） ===== */
 function dist(lat1,lng1,lat2,lng2){
   var R=6371000, r=Math.PI/180;
   var dLat=(lat2-lat1)*r, dLng=(lng2-lng1)*r;
@@ -222,19 +205,17 @@ function dist(lat1,lng1,lat2,lng2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
-$('modeBtn').onclick=function(){
-  MODE=(MODE==='gcj')?'raw':'gcj';
-  lastFix=null;
-  render(false);
+/* ===== 按钮 ===== */
+$('srcBtn').onclick=function(){
+  si=(si+1)%SOURCES.length;
+  if(tileLayer) map.removeLayer(tileLayer);
+  addTiles();
+  $('status').textContent='已切换：'+SOURCES[si].n;
 };
-$('recenter').onclick=function(){
-  if(lastRaw){
-    var use=(MODE==='gcj')?wgs84ToGcj02(lastRaw[0],lastRaw[1]):lastRaw;
-    map.setZoomAndCenter(17,use);
-  }
-};
+$('recenter').onclick=function(){ if(lastFix) map.setView(lastFix,17); };
+$('authBtn').onclick=requestLocation;
 
-window.onload=function(){ initMap(); $('authBtn').onclick=requestLocation; };
+document.addEventListener('gesturestart',function(e){e.preventDefault();});
 </script>
 </body>
 </html>

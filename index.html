@@ -5,10 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>活点地图 · Marauder's Map</title>
 
-<!-- ★【改这里 1】字体：text= 后面 = 所有会用手写体的字，一个都不能漏 ★ -->
 <link rel="preconnect" href="https://fonts.loli.net" crossorigin>
-<link rel="stylesheet"
-  href="https://fonts.loli.net/css2?family=Long+Cang&amp;family=Zhi+Mang+Xing&amp;family=Ma+Shan+Zheng&amp;text=燕知春MischiefManaged回到我的位置&amp;display=swap">
+<link id="fontLink" rel="stylesheet" href="">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -26,15 +24,12 @@
 
   .title{position:fixed;top:18px;left:18px;z-index:100;color:#3A2410;pointer-events:none;
     text-shadow:0 1px 2px rgba(255,250,235,.7);}
-  .title h1{
-    /* ★【改这里 2】标题字体 ★ */
-    font-family:"Ma Shan Zheng","STXingkai","Long Cang",Georgia,serif;
+  .title h1{font-family:"Ma Shan Zheng","STXingkai","Long Cang",Georgia,serif;
     font-size:26px;font-weight:400;letter-spacing:3px;
     border-bottom:2px solid #6B4A22;padding-bottom:4px;display:inline-block;}
   .title p{font-family:Georgia,"Songti SC",serif;
     font-size:12px;font-style:italic;opacity:.8;margin-top:5px;}
 
-  /* 羊皮纸面板（状态栏 + 按钮共用） */
   .panel{background:rgba(246,233,203,.95);border:1px solid #6B4A22;border-radius:4px;
     color:#3A2410;box-shadow:0 3px 12px rgba(60,35,10,.25);position:relative;}
   .panel::before{content:'';position:absolute;inset:3px;
@@ -57,6 +52,35 @@
   #recenter .ic::after{content:'';position:absolute;left:50%;top:50%;
     width:3px;height:3px;margin:-1.5px 0 0 -1.5px;background:#6B4A22;border-radius:50%;}
 
+  /* ============ 名字/房间号 设置面板 ============ */
+  #setup{position:fixed;inset:0;z-index:300;display:flex;
+    align-items:center;justify-content:center;padding:24px;
+    background:rgba(52,35,16,.72);backdrop-filter:blur(2px);}
+  #setup.hide{display:none;}
+  #setup .box{width:100%;max-width:330px;padding:24px 20px 20px;}
+  #setup h2{font-family:"Ma Shan Zheng","Long Cang",Georgia,serif;
+    font-size:22px;font-weight:400;letter-spacing:2px;color:#3A2410;
+    text-align:center;margin-bottom:6px;}
+  #setup .sub{font-size:12px;font-style:italic;color:#6B4A22;
+    text-align:center;margin-bottom:20px;line-height:1.6;}
+  #setup label{display:block;font-size:12px;color:#6B4A22;
+    margin:0 0 6px 2px;letter-spacing:.5px;}
+  #setup input{width:100%;padding:11px 12px;margin-bottom:16px;
+    background:rgba(255,251,240,.9);
+    border:1px solid rgba(107,74,34,.5);border-radius:3px;
+    font-family:Consolas,"Songti SC",monospace;font-size:15px;color:#2E1B08;
+    -webkit-appearance:none;outline:none;}
+  #setup input:focus{border-color:#6B4A22;background:#FFFBF0;}
+  #setup .hint{font-size:11px;color:#8B6B45;margin:-12px 0 16px 2px;line-height:1.5;}
+  #setup button{width:100%;padding:13px;margin-top:4px;
+    background:linear-gradient(#8B5A2B,#5D3A1A);color:#F6E9CB;
+    border:2px solid #A0713C;border-radius:4px;
+    font-family:"STKaiti","KaiTi",Georgia,serif;font-size:16px;letter-spacing:2px;
+    cursor:pointer;}
+  #setup button:active{transform:translateY(1px);}
+  #setup .err{font-size:12px;color:#A03A2A;text-align:center;
+    margin-top:12px;min-height:16px;}
+
   .auth{position:fixed;inset:auto 0 0 0;z-index:200;text-align:center;color:#F6E9CB;
     padding:70px 20px 95px;transition:opacity .6s;
     background:linear-gradient(to top,rgba(52,35,16,.96),rgba(52,35,16,0));}
@@ -66,22 +90,18 @@
     border:2px solid #A0713C;border-radius:5px;padding:12px 30px;
     font-family:Georgia,serif;font-size:15px;cursor:pointer;}
 
-  /* ============ 名字：手写墨字 ============ */
   .nm{position:absolute;left:0;bottom:8px;transform:translateX(-50%);white-space:nowrap;
-    /* ★【改这里 3】名字字体：想换风格就把想用的挪最前面 ★ */
     font-family:"Long Cang","Zhi Mang Xing","Ma Shan Zheng",
                 "STKaiti","Kaiti SC","KaiTi",Georgia,serif;
     font-size:22px;font-weight:400;letter-spacing:2px;color:#2E1B08;
     text-shadow:0 0 3px rgba(246,233,203,.95),0 1px 2px rgba(246,233,203,.9);}
+  .nm.other{opacity:.85;}
 
-  /* ============ 脚印：改小了（5×9 像素） ============ */
   .fpw{position:absolute;left:0;top:0;width:0;height:0;}
-  .fp{
-    position:absolute;left:-2.5px;top:-4.5px;width:5px;height:9px;
+  .fp{position:absolute;left:-2.5px;top:-4.5px;width:5px;height:9px;
     background:radial-gradient(ellipse at 50% 42%,#2E1B08 0%,#2E1B08 34%,rgba(46,27,8,0) 86%);
     border-radius:50% 50% 45% 45% / 60% 60% 40% 40%;
-    animation:fpFade 60s linear forwards;
-  }
+    animation:fpFade 60s linear forwards;}
   @keyframes fpFade{0%{opacity:.5;}55%{opacity:.4;}100%{opacity:0;}}
 
   .leaflet-control-attribution{font-size:9px!important;
@@ -99,50 +119,85 @@
 <button id="recenter" class="panel"><span class="ic"></span>回到我的位置</button>
 <div class="status panel" id="status">正在加载魔法地图…</div>
 
-<div class="auth" id="auth">
+<!-- ============ 首次打开：填名字和房间号 ============ -->
+<div id="setup">
+  <div class="box panel">
+    <h2>活点地图</h2>
+    <div class="sub">填好后会记住，下次不用再填</div>
+
+    <label>你的名字</label>
+    <input id="inName" type="text" placeholder="例如：燕知春" autocomplete="off">
+
+    <label>房间号</label>
+    <input id="inRoom" type="text" placeholder="例如：mm-x7k2q" autocomplete="off">
+    <div class="hint">两台手机必须填<b>一模一样</b>的房间号<br>它相当于密码，别用太简单的</div>
+
+    <button id="btnStart">开始</button>
+    <div class="err" id="setupErr"></div>
+  </div>
+</div>
+
+<div class="auth hide" id="auth">
   <p>活点地图需要你的位置授权，才能显现你的踪迹</p>
   <button id="authBtn">授权定位</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/mqtt@5/dist/mqtt.min.js"></script>
 <script>
 /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-   【改这里 4】全部可调参数
+   【改这里】默认参数（网址参数 / 手动填写 会覆盖掉它们）
    ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
 var CFG={
-  name:'燕知春',
+  name:'',              /* 留空 → 首次打开会弹窗让你填 */
+  room:'',              /* 留空 → 首次打开会弹窗让你填 */
+
+  broker:'wss://broker.emqx.io:8084/mqtt',
+  baseTopic:'hp/mm',
+
+  pubInterval:4000,
+  pubHeartbeat:20000,
+  pubMoveMeters:8,
+
+  staleHide:45000,
+  staleRemove:300000,
+
   showFootprints:true,
+  gapPx:14,
+  gapPxMax:70,
+  gapCurve:0.5,
+  twoFeet:true,
+  swayPx:4,
 
-  /* ★★★ 脚印疏密的核心：按「屏幕像素」算，不按米算 ★★★ */
-  gapPx:14,          /* ★ 相邻脚印的屏幕间隔(像素)。
-                            还是太密 → 调到 20 或 24
-                            太稀不够味 → 调到 10 */
-  gapPxMax:70,       /* ★ 高速时最大间隔(像素)，防止开快车时脚印拉太开 */
-  gapCurve:0.5,      /* ★ 速度对间隔的影响：0.5 平缓，1 线性 */
-
-  /* —— 左右脚 —— */
-  twoFeet:true,      /* ★ 不要左右交替 → false（就是一条直线上的脚印） */
-  swayPx:4,          /* ★ 左右脚横向分开多少像素。还黏一起 → 调到 6 或 8 */
-
-  /* —— 速度判定 —— */
-  walkSpeed:1.4,     /* 参考速度，一般不用改 */
-  minSpeed:0.9,      /* ★ 低于此速度视为静止，不留脚印 */
+  walkSpeed:1.4,
+  minSpeed:0.9,
   speedSmooth:0.5,
   bearingSmooth:0.6,
 
-  /* —— 安全阀 —— */
-  jumpMeters:150,    /* 单次跳这么远 → 判定 GPS 异常，不画 */
+  jumpMeters:150,
   gapResetMs:6000,
   maxFeetPerFix:4,
-
-  /* —— 脚印存留 —— */
-  trailLife:60000,   /* ★ 脚印留多久(ms)。60秒=长尾巴；想短一点→20000 */
-  maxFootprints:120, /* 同屏上限（防卡顿） */
-
+  trailLife:60000,
+  maxFootprints:200,
   zoom:17
 };
 
-/* ============ 瓦片源：固定德国源 + 静默降级 ============ */
+/* ============ 读取 网址参数 / 本地记忆 ============ */
+function qs(k){
+  try{
+    var m=new RegExp('[?&]'+k+'=([^&]*)').exec(location.search);
+    if(!m) return '';
+    var v=m[1].replace(/\+/g,' ');
+    try{ return decodeURIComponent(v); }catch(e){ return v; }
+  }catch(e){ return ''; }
+}
+function store(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function load(k){ try{ return localStorage.getItem(k)||''; }catch(e){ return ''; } }
+
+CFG.name = qs('n') || load('mm_name') || CFG.name;
+CFG.room = qs('r') || load('mm_room') || CFG.room;
+
+/* ============ 瓦片源 ============ */
 var SOURCES=[
   {n:'OSM 德国', u:'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
    a:'&copy; OpenStreetMap contributors', mz:18},
@@ -156,7 +211,7 @@ var SOURCES=[
 var si=0, tileLayer=null, tileErr=0, lastSwitch=0;
 function $(id){return document.getElementById(id);}
 
-/* ================= 地图 ================= */
+/* ============ 地图 ============ */
 var HOME=[31.970430, 118.746435];
 var map=L.map('map-container',{
   zoomControl:false, attributionControl:true,
@@ -171,8 +226,7 @@ function addTiles(){
     attribution:s.a, crossOrigin:true
   }).addTo(map);
   tileLayer.on('tileerror',function(){
-    tileErr++;
-    var now=Date.now();
+    tileErr++; var now=Date.now();
     if(tileErr>=3 && si<SOURCES.length-1 && now-lastSwitch>4000){
       lastSwitch=now; tileErr=0; si++;
       map.removeLayer(tileLayer); addTiles();
@@ -181,39 +235,218 @@ function addTiles(){
   tileLayer.on('tileload',function(){ tileErr=0; });
 }
 
-/* ================= 状态 ================= */
-var meMarker=null, lastFix=null, lastT=0, follow=true;
-var speed=0, pending=0, sideFlip=1, fpList=[];
-var bSin=null, bCos=null, lastFootPt=null;
+/* ============ 人员 ============ */
+var myId='mm_'+Math.random().toString(36).slice(2,10);
+var people={}, follow=true, mqttOk=false, booted=false;
+
+function newPerson(name,isMe){
+  return {name:name,isMe:!!isMe,lat:null,lng:null,lastT:0,lastSeen:0,acc:null,
+    speed:0,pending:0,sideFlip:1,lastFootPt:null,bSin:null,bCos:null,marker:null};
+}
+function me(){ return people[CFG.name]; }
+function initMe(){ if(CFG.name && !people[CFG.name]) people[CFG.name]=newPerson(CFG.name,true); return me(); }
 
 map.on('dragstart',function(){ follow=false; });
-/* 缩放变了 → 尺度变了，清掉累积距离，避免突然冒出一簇 */
-map.on('zoomend',function(){ pending=0; });
+map.on('zoomend',function(){ for(var k in people) people[k].pending=0; });
 
-/* =================★ 像素 ↔ 米 换算（核心） ================= */
+/* ============ 像素 ↔ 米 ============ */
 function mPerPixel(){
   var lat=map.getCenter().lat;
   return 156543.03392*Math.cos(lat*Math.PI/180)/Math.pow(2,map.getZoom());
 }
-
-/* 相邻脚印需要多少米 —— 由「像素间隔」和当前速度决定 */
 function gapMeters(sp){
-  var mpp=mPerPixel();
-  var v=Math.max(sp,0.3);
-  var px=CFG.gapPx*Math.pow(v/CFG.walkSpeed, CFG.gapCurve);
+  var mpp=mPerPixel(), v=Math.max(sp,0.3);
+  var px=CFG.gapPx*Math.pow(v/CFG.walkSpeed,CFG.gapCurve);
   if(px>CFG.gapPxMax) px=CFG.gapPxMax;
   return px*mpp;
 }
-
-/* 左右脚偏移多少米 —— 也是像素决定 */
 function swayMeters(mpp,sp){
   if(!CFG.twoFeet) return 0;
-  var k=Math.min(1, CFG.walkSpeed/Math.max(sp,0.3));
+  var k=Math.min(1,CFG.walkSpeed/Math.max(sp,0.3));
   if(k<0.3) k=0.3;
   return CFG.swayPx*mpp*k;
 }
 
-/* ================= 定位 ================= */
+/* ============ 处理一个人的新坐标 ============ */
+var fpList=[];
+function processFix(p,lat,lng,t,acc,devSpeed){
+  var first=(p.lat===null);
+  var mpp=mPerPixel();
+
+  if(!first){
+    var dt=(t-p.lastT)/1000;
+    if(dt>0.2 && dt<CFG.gapResetMs/1000){
+      var s=dist(p.lat,p.lng,lat,lng)/dt;
+      if(devSpeed!=null && isFinite(devSpeed) && devSpeed>=0) s=(s+devSpeed*2)/3;
+      p.speed=p.speed*(1-CFG.speedSmooth)+s*CFG.speedSmooth;
+    }else if(dt>=CFG.gapResetMs/1000){
+      p.speed=0; p.pending=0;
+    }
+    if(CFG.showFootprints) layTrail(p,p.lat,p.lng,lat,lng,mpp);
+  }
+
+  p.lat=lat; p.lng=lng; p.lastT=t; p.acc=acc; p.lastSeen=Date.now();
+  if(first && p.isMe) map.setView([lat,lng],CFG.zoom);
+  ensureMarker(p);
+}
+
+function layTrail(p,alat,alng,blat,blng,mpp){
+  var d=dist(alat,alng,blat,blng);
+  if(d>CFG.jumpMeters){ p.pending=0; return; }
+  if(p.speed<CFG.minSpeed){ p.pending=0; return; }
+  if(d<=0) return;
+
+  var gap=gapMeters(p.speed);
+  if(!(gap>0)) return;
+
+  var minPx=CFG.gapPx;
+  var sway=swayMeters(mpp,p.speed);
+  var brg=smoothBearing(p,bearing(alat,alng,blat,blng));
+
+  p.pending+=d;
+  var placed=0;
+
+  while(p.pending>=gap && placed<CFG.maxFeetPerFix){
+    p.pending-=gap; placed++;
+    var f=1-p.pending/d;
+    if(f<0)f=0; if(f>1)f=1;
+    var q=[alat+(blat-alat)*f, alng+(blng-alng)*f];
+
+    if(p.lastFootPt){
+      var px=dist(p.lastFootPt[0],p.lastFootPt[1],q[0],q[1])/mpp;
+      if(px<minPx) continue;
+    }
+    p.sideFlip=-p.sideFlip;
+    addFoot(sideOffset(q,brg,sway),brg);
+    p.lastFootPt=q;
+  }
+  if(p.pending>gap) p.pending=gap;
+}
+
+/* ============ 名字标记 ============ */
+function esc(s){
+  return String(s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function ensureMarker(p){
+  if(p.marker){ p.marker.setLatLng([p.lat,p.lng]); return; }
+  var ic=L.divIcon({className:'',
+    html:'<div class="nm'+(p.isMe?'':' other')+'">'+esc(p.name)+'</div>',
+    iconSize:[0,0],iconAnchor:[0,0]});
+  p.marker=L.marker([p.lat,p.lng],{icon:ic,interactive:false,
+    zIndexOffset:p.isMe?1000:900}).addTo(map);
+}
+
+/* ============ 脚印 ============ */
+function addFoot(ll,brg){
+  var html='<div class="fpw" style="transform:rotate('+brg.toFixed(1)+'deg)">'+
+             '<div class="fp" style="animation-duration:'+CFG.trailLife+'ms"></div></div>';
+  var ic=L.divIcon({className:'',html:html,iconSize:[0,0],iconAnchor:[0,0]});
+  var m=L.marker(ll,{icon:ic,interactive:false,zIndexOffset:100}).addTo(map);
+  fpList.push(m);
+  if(fpList.length>CFG.maxFootprints) map.removeLayer(fpList.shift());
+  setTimeout(function(){
+    map.removeLayer(m);
+    var i=fpList.indexOf(m); if(i>-1) fpList.splice(i,1);
+  },CFG.trailLife+200);
+}
+function sideOffset(q,brg,offM){
+  if(offM===0) return q;
+  var perp=(brg+90)*Math.PI/180;
+  var mLat=111320, mLng=111320*Math.cos(q[0]*Math.PI/180);
+  return [q[0]+Math.cos(perp)*offM/mLat, q[1]+Math.sin(perp)*offM/mLng];
+}
+function smoothBearing(p,brg){
+  var r=brg*Math.PI/180, sn=Math.sin(r), cs=Math.cos(r);
+  if(p.bSin===null){ p.bSin=sn; p.bCos=cs; }
+  else{
+    var k=CFG.bearingSmooth;
+    p.bSin=p.bSin*(1-k)+sn*k; p.bCos=p.bCos*(1-k)+cs*k;
+    var m=Math.sqrt(p.bSin*p.bSin+p.bCos*p.bCos)||1;
+    p.bSin/=m; p.bCos/=m;
+  }
+  return (Math.atan2(p.bSin,p.bCos)*180/Math.PI+360)%360;
+}
+
+/* ============ 数学 ============ */
+function bearing(lat1,lng1,lat2,lng2){
+  var r=Math.PI/180;
+  var y=Math.sin((lng2-lng1)*r)*Math.cos(lat2*r);
+  var x=Math.cos(lat1*r)*Math.sin(lat2*r)-
+        Math.sin(lat1*r)*Math.cos(lat2*r)*Math.cos((lng2-lng1)*r);
+  return (Math.atan2(y,x)/r+360)%360;
+}
+function dist(lat1,lng1,lat2,lng2){
+  var R=6371000,r=Math.PI/180;
+  var dLat=(lat2-lat1)*r,dLng=(lng2-lng1)*r;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+
+        Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function speedLabel(s){
+  var k=s*3.6;
+  var t=k<1?'静止':k<7?'步行':k<20?'骑行':'驾车';
+  return t+' '+k.toFixed(0)+' km/h';
+}
+
+/* ============ 字体：按名字动态生成（只下载用到的字） ============ */
+function loadFont(){
+  var txt=CFG.name+'MischiefManaged回到我的位置开始你的名字房间号';
+  $('fontLink').href='https://fonts.loli.net/css2?family=Long+Cang&family=Zhi+Mang+Xing'
+    +'&family=Ma+Shan+Zheng&text='+encodeURIComponent(txt)+'&display=swap';
+}
+
+/* ============ MQTT ============ */
+var client=null, lastPub=0, lastPubLL=null;
+function topicPos(){ return CFG.baseTopic+'/'+CFG.room+'/pos'; }
+
+function startNet(){
+  if(!CFG.room){ setNet('⚠️ 没有房间号'); return; }
+  if(typeof mqtt==='undefined'){ setNet('⚠️ MQTT 库未加载'); return; }
+  setNet('正在联通魔法…');
+  try{
+    client=mqtt.connect(CFG.broker,{
+      clientId:myId, clean:true, reconnectPeriod:3000, connectTimeout:12000
+    });
+  }catch(e){ setNet('❌ 连接失败'); return; }
+
+  client.on('connect',function(){
+    mqttOk=true;
+    client.subscribe(topicPos(),{qos:0});
+    setNet('已联通');
+  });
+  client.on('reconnect',function(){ mqttOk=false; setNet('重连中…'); });
+  client.on('error',function(){ mqttOk=false; setNet('❌ 网络错误'); });
+  client.on('close',function(){ mqttOk=false; setNet('连接断开'); });
+
+  client.on('message',function(t,payload){
+    var d=null;
+    try{ d=JSON.parse(payload.toString()); }catch(e){ return; }
+    if(!d || !d.n || d.i===myId) return;
+    if(d.n===CFG.name && d.i!==myId) return;   /* 防止有人和我重名 */
+    var lat=+d.a, lng=+d.o, t=+d.t;
+    if(!isFinite(lat)||!isFinite(lng)) return;
+    if(Math.abs(lat)>90||Math.abs(lng)>180) return;
+    if(!people[d.n]) people[d.n]=newPerson(d.n,false);
+    processFix(people[d.n],lat,lng,t,d.c!=null?Math.round(d.c):null,null);
+  });
+}
+
+function publishPos(lat,lng,t,acc){
+  if(!client||!mqttOk) return;
+  var now=Date.now();
+  var moved=lastPubLL?dist(lastPubLL[0],lastPubLL[1],lat,lng):999;
+  if(now-lastPub<CFG.pubInterval && moved<CFG.pubMoveMeters) return;
+  lastPub=now; lastPubLL=[lat,lng];
+  try{
+    client.publish(topicPos(),JSON.stringify({
+      i:myId,n:CFG.name,a:lat,o:lng,t:t,c:acc
+    }),{qos:0,retain:false});
+  }catch(e){}
+}
+
+/* ============ 我的定位 ============ */
 function requestLocation(){
   if(!navigator.geolocation){ $('status').textContent='❌ 设备不支持定位'; return; }
   $('status').textContent='正在施展追踪咒语…';
@@ -226,48 +459,16 @@ function onFix(pos){
   var lat=pos.coords.latitude, lng=pos.coords.longitude;
   var acc=(pos.coords.accuracy!=null)?Math.round(pos.coords.accuracy):null;
   var t=pos.timestamp||Date.now();
-  var ll=[lat,lng];
+  var p=initMe();
+  if(!p) return;
 
   $('auth').classList.add('hide');
   $('recenter').classList.add('show');
 
-  /* ---------- 1. 速度 ---------- */
-  if(lastFix){
-    var dt=(t-lastT)/1000;
-    if(dt>0.2 && dt<CFG.gapResetMs/1000){
-      var s=dist(lastFix[0],lastFix[1],lat,lng)/dt;
-      var dev=pos.coords.speed;
-      if(dev!=null && isFinite(dev) && dev>=0) s=(s+dev*2)/3;
-      speed=speed*(1-CFG.speedSmooth)+s*CFG.speedSmooth;
-    }else if(dt>=CFG.gapResetMs/1000){
-      speed=0; pending=0;
-    }
-  }
-  lastT=t;
-
-  /* ---------- 2. 落脚印 ---------- */
-  if(lastFix && CFG.showFootprints){
-    var d=dist(lastFix[0],lastFix[1],lat,lng);
-    layTrail(lastFix, ll, d);
-  }
-
-  /* ---------- 3. 名字 & 跟随 ---------- */
-  if(!lastFix){
-    map.setView(ll,CFG.zoom);
-    ensureMarker(ll);
-  }else{
-    ensureMarker(ll);
-    if(follow && speed>=CFG.minSpeed) map.panTo(ll,{animate:true,duration:0.9});
-  }
-  lastFix=ll;
-
-  /* ---------- 4. 状态栏 ---------- */
-  var gap=gapMeters(speed);
-  var moving=speed>=CFG.minSpeed;
-  $('status').innerHTML=
-    '<b>'+speedLabel(speed)+'</b>　间隔 '+(moving?gap.toFixed(0)+'m':'—')+
-    '　脚印 '+fpList.length+'<br>'+
-    '精度 ±'+(acc==null?'?':acc)+'m　'+lat.toFixed(6)+', '+lng.toFixed(6);
+  processFix(p,lat,lng,t,acc,pos.coords.speed);
+  if(follow && p.speed>=CFG.minSpeed) map.panTo([lat,lng],{animate:true,duration:0.9});
+  publishPos(lat,lng,t,acc);
+  refreshStatus();
 }
 
 function onErr(e){
@@ -275,114 +476,108 @@ function onErr(e){
   $('status').innerHTML='❌ '+m;
 }
 
-/* =================★ 铺脚印（像素防重叠） ================= */
-function layTrail(a,b,d){
-  if(d>CFG.jumpMeters){ pending=0; return; }   /* GPS 跳点 */
-  if(speed<CFG.minSpeed){ pending=0; return; } /* 静止 */
-  if(d<=0) return;
+/* ============ 心跳 & 清理 ============ */
+setInterval(function(){
+  var p=me();
+  if(p && p.lat!==null && Date.now()-lastPub>CFG.pubHeartbeat){
+    publishPos(p.lat,p.lng,p.lastT||Date.now(),p.acc);
+  }
+},5000);
 
-  var gap=gapMeters(speed);
-  if(!(gap>0)) return;
-
-  var mpp=mPerPixel();
-  var minPx=CFG.gapPx;            /* 硬性最小像素间隔，防止重叠 */
-  var sway=swayMeters(mpp,speed);
-  var brg=smoothBearing(bearing(a[0],a[1],b[0],b[1]));
-
-  pending+=d;
-  var placed=0;
-
-  while(pending>=gap && placed<CFG.maxFeetPerFix){
-    pending-=gap;
-    placed++;
-
-    var f=1-pending/d;                    /* 0=起点 1=终点 */
-    if(f<0) f=0; if(f>1) f=1;
-    var p=[a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f];
-
-    /* 硬性防重叠：跟上一只脚印比像素距离，太近就跳过 */
-    if(lastFootPt){
-      var px=dist(lastFootPt[0],lastFootPt[1],p[0],p[1])/mpp;
-      if(px<minPx) continue;
+setInterval(function(){
+  var now=Date.now();
+  for(var k in people){
+    var p=people[k];
+    if(p.isMe||!p.lastSeen) continue;
+    var age=now-p.lastSeen;
+    if(age>CFG.staleRemove){
+      if(p.marker){ map.removeLayer(p.marker); p.marker=null; }
+      delete people[k];
+    }else if(age>CFG.staleHide && p.marker){
+      if(p.marker.setOpacity) p.marker.setOpacity(0);
     }
-
-    sideFlip=-sideFlip;
-    addFoot(sideOffset(p,brg,sway), brg);
-    lastFootPt=p;
   }
-  if(pending>gap) pending=gap;   /* 安全阀 */
-}
+  refreshStatus();
+},5000);
 
-/* ================= 脚印 ================= */
-function addFoot(ll,brg){
-  var html='<div class="fpw" style="transform:rotate('+brg.toFixed(1)+'deg)">'+
-             '<div class="fp" style="animation-duration:'+CFG.trailLife+'ms"></div>'+
-           '</div>';
-  var ic=L.divIcon({className:'',html:html,iconSize:[0,0],iconAnchor:[0,0]});
-  var m=L.marker(ll,{icon:ic,interactive:false,zIndexOffset:100}).addTo(map);
+/* ============ 状态栏 ============ */
+var netMsg='未联机';
+function setNet(s){ netMsg=s; refreshStatus(); }
 
-  fpList.push(m);
-  if(fpList.length>CFG.maxFootprints) map.removeLayer(fpList.shift());
-  setTimeout(function(){
-    map.removeLayer(m);
-    var i=fpList.indexOf(m); if(i>-1) fpList.splice(i,1);
-  }, CFG.trailLife+200);
-}
+function refreshStatus(){
+  var p=me(); if(!p||p.lat===null){ $('status').innerHTML='正在施展追踪咒语…'; return; }
+  var gap=gapMeters(p.speed);
+  var moving=p.speed>=CFG.minSpeed;
 
-function sideOffset(p,brg,offM){
-  if(offM===0) return p;
-  var perp=(brg+90)*Math.PI/180;
-  var mLat=111320, mLng=111320*Math.cos(p[0]*Math.PI/180);
-  return [p[0]+Math.cos(perp)*offM/mLat, p[1]+Math.sin(perp)*offM/mLng];
-}
-
-function speedLabel(s){
-  var k=s*3.6;
-  var t = k<1?'静止' : k<7?'步行' : k<20?'骑行' : '驾车';
-  return t+' '+k.toFixed(0)+' km/h';
-}
-
-var nameIcon=L.divIcon({className:'',
-  html:'<div class="nm">'+CFG.name+'</div>', iconSize:[0,0], iconAnchor:[0,0]});
-function ensureMarker(ll){
-  if(meMarker){ meMarker.setLatLng(ll); return; }
-  meMarker=L.marker(ll,{icon:nameIcon,interactive:false,zIndexOffset:1000}).addTo(map);
-}
-
-function smoothBearing(brg){
-  var r=brg*Math.PI/180, sn=Math.sin(r), cs=Math.cos(r);
-  if(bSin===null){ bSin=sn; bCos=cs; }
-  else{
-    var k=CFG.bearingSmooth;
-    bSin=bSin*(1-k)+sn*k; bCos=bCos*(1-k)+cs*k;
-    var m=Math.sqrt(bSin*bSin+bCos*bCos)||1;
-    bSin/=m; bCos/=m;
+  var names=[], now=Date.now();
+  for(var k in people){
+    var q=people[k];
+    if(q.isMe || (q.lastSeen && now-q.lastSeen<CFG.staleHide)) names.push(q.name);
   }
-  return (Math.atan2(bSin,bCos)*180/Math.PI+360)%360;
+
+  $('status').innerHTML=
+    '<b>'+speedLabel(p.speed)+'</b>　间隔 '+(moving?gap.toFixed(0)+'m':'—')+'<br>'+
+    '🔗 '+netMsg+'　👥 '+names.join('、')+'<br>'+
+    '精度 ±'+(p.acc==null?'?':p.acc)+'m　'+p.lat.toFixed(6)+', '+p.lng.toFixed(6);
 }
 
-function bearing(lat1,lng1,lat2,lng2){
-  var r=Math.PI/180;
-  var y=Math.sin((lng2-lng1)*r)*Math.cos(lat2*r);
-  var x=Math.cos(lat1*r)*Math.sin(lat2*r)-
-        Math.sin(lat1*r)*Math.cos(lat2*r)*Math.cos((lng2-lng1)*r);
-  return (Math.atan2(y,x)/r+360)%360;
-}
-
-function dist(lat1,lng1,lat2,lng2){
-  var R=6371000, r=Math.PI/180;
-  var dLat=(lat2-lat1)*r, dLng=(lng2-lng1)*r;
-  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+
-        Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLng/2)*Math.sin(dLng/2);
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-
+/* ============ 按钮 ============ */
 $('recenter').onclick=function(){
   follow=true;
-  if(lastFix) map.setView(lastFix,CFG.zoom);
+  var p=me(); if(p&&p.lat!==null) map.setView([p.lat,p.lng],CFG.zoom);
 };
 $('authBtn').onclick=requestLocation;
 document.addEventListener('gesturestart',function(e){e.preventDefault();});
+
+/* ============ 设置面板 ============ */
+function randRoom(){
+  var s='', c='abcdefghijkmnpqrstuvwxyz23456789';
+  for(var i=0;i<5;i++) s+=c[Math.floor(Math.random()*c.length)];
+  return 'mm-'+s;
+}
+
+function showSetup(){
+  $('setup').classList.remove('hide');
+  $('inName').value=CFG.name||'';
+  $('inRoom').value=CFG.room||randRoom();
+  $('inName').focus();
+}
+
+function submitSetup(){
+  var n=$('inName').value.trim();
+  var r=$('inRoom').value.trim().toLowerCase().replace(/\s+/g,'');
+  if(!n){ $('setupErr').textContent='请填个名字'; return; }
+  if(!r){ $('setupErr').textContent='请填房间号'; return; }
+  if(!/^[a-z0-9\-_]{4,40}$/.test(r)){
+    $('setupErr').textContent='房间号只能用 小写字母/数字/-/_ ，至少4位'; return;
+  }
+  CFG.name=n; CFG.room=r;
+  store('mm_name',n); store('mm_room',r);
+  $('setup').classList.add('hide');
+  boot();
+}
+
+$('btnStart').onclick=submitSetup;
+$('inRoom').addEventListener('keydown',function(e){ if(e.key==='Enter') submitSetup(); });
+
+/* ============ 启动 ============ */
+function boot(){
+  if(booted) return;
+  booted=true;
+  initMe();
+  loadFont();
+  startNet();
+  $('auth').classList.remove('hide');   /* 显示"授权定位" */
+  refreshStatus();
+}
+
+if(CFG.name && CFG.room) boot();
+else showSetup();
+
+/* 想重新设置：网址后面加 ?reset=1 */
+if(qs('reset')==='1'){ showSetup(); booted=false; }
 </script>
+</body>
+</html>
 </body>
 </html>

@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>活点地图 · Marauder's Map</title>
+
+<!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ -->
+<!-- 【改这里 1】手写墨字字体                                              -->
+<!--  · text= 后面 = 页面上所有会用到手写字体的字，一个字都不能漏！        -->
+<!--  · 改名字了，这里也要一起加进去，否则新字显示不出来                  -->
+<!--  · 加载不出来就换镜像：fonts.loli.net  →  fonts.lug.ustc.edu.cn      -->
+<!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ -->
+<link rel="preconnect" href="https://fonts.loli.net" crossorigin>
+<link rel="stylesheet"
+  href="https://fonts.loli.net/css2?family=Long+Cang&amp;family=Zhi+Mang+Xing&amp;family=Ma+Shan+Zheng&amp;text=燕知春MischiefManaged&amp;display=swap">
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -12,7 +23,7 @@
 
   #map-container{position:fixed;inset:0;background:#F2E2BD;z-index:1;}
 
-  /* 瓦片榨成墨线+卷轴色 */
+  /* 瓦片榨成墨线 + 卷轴色 */
   .leaflet-tile-pane{
     filter:grayscale(1) brightness(.8) contrast(2.4) sepia(1) saturate(1.3) hue-rotate(-6deg);
   }
@@ -22,12 +33,19 @@
   .vignette{position:fixed;inset:0;z-index:11;pointer-events:none;
     box-shadow:inset 0 0 170px rgba(105,68,22,.5);}
 
+  /* ---------- 标题 ---------- */
   .title{position:fixed;top:18px;left:18px;z-index:100;color:#3A2410;pointer-events:none;
     text-shadow:0 1px 2px rgba(255,250,235,.7);}
-  .title h1{font-size:22px;font-weight:400;letter-spacing:2px;
-    border-bottom:2px solid #6B4A22;padding-bottom:4px;display:inline-block;}
-  .title p{font-size:12px;font-style:italic;opacity:.8;margin-top:5px;}
+  .title h1{
+    /* ★★★ 标题字体在这里：换风格就把想用的挪到最前面 ★★★ */
+    font-family:"Ma Shan Zheng","STXingkai","Long Cang",Georgia,serif;
+    font-size:26px; font-weight:400; letter-spacing:3px;
+    border-bottom:2px solid #6B4A22; padding-bottom:4px; display:inline-block;
+  }
+  .title p{font-family:Georgia,"Songti SC",serif;
+    font-size:12px;font-style:italic;opacity:.8;margin-top:5px;}
 
+  /* ---------- 状态栏 ---------- */
   .status{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:100;
     background:rgba(246,233,203,.95);border:1px solid #6B4A22;border-radius:4px;
     padding:7px 12px;font-size:11px;line-height:1.6;color:#3A2410;
@@ -35,6 +53,7 @@
     box-shadow:0 3px 12px rgba(60,35,10,.25);}
   .status b{color:#8B4513;}
 
+  /* ---------- 按钮 ---------- */
   .btn{position:fixed;left:16px;z-index:100;
     background:linear-gradient(#8B5A2B,#5D3A1A);color:#F6E9CB;border:2px solid #A0713C;
     border-radius:5px;padding:9px 13px;font-family:Georgia,serif;font-size:12px;cursor:pointer;
@@ -43,6 +62,7 @@
   #recenter{bottom:16px;}
   #srcBtn{bottom:62px;}
 
+  /* ---------- 授权提示 ---------- */
   .auth{position:fixed;inset:auto 0 0 0;z-index:200;text-align:center;color:#F6E9CB;
     padding:70px 20px 95px;transition:opacity .6s;
     background:linear-gradient(to top,rgba(52,35,16,.96),rgba(52,35,16,0));}
@@ -52,17 +72,27 @@
     border:2px solid #A0713C;border-radius:5px;padding:12px 30px;
     font-family:Georgia,serif;font-size:15px;cursor:pointer;}
 
-  /* =====★ 名字：只有墨字，没有圈、没有点 ★===== */
+  /* =================★ 名字：手写墨字 =================*/
   .nm{
-    position:absolute; left:0; bottom:6px; transform:translateX(-50%);
+    position:absolute; left:0; bottom:8px; transform:translateX(-50%);
     white-space:nowrap;
-    font-family:"STKaiti","Kaiti SC","KaiTi","Kaiti","Songti SC",Georgia,serif;
-    font-size:16px; font-weight:600; letter-spacing:1.5px;
+
+    /* ★★★ 名字字体在这里：换风格就把想用的挪到最前面 ★★★
+       Long Cang   = 细笔随性（最像电影细墨字）
+       Zhi Mang Xing = 行书连笔
+       Ma Shan Zheng = 毛笔楷书（偏粗）
+       后面几个是加载失败时的备用系统字体 */
+    font-family:"Long Cang","Zhi Mang Xing","Ma Shan Zheng",
+                "STKaiti","Kaiti SC","KaiTi",Georgia,serif;
+
+    font-size:22px;      /* ★ 手写字偏细，觉得小就调大，如 26px */
+    font-weight:400;     /* ★ 手写体千万别加粗，会糊成一团 */
+    letter-spacing:2px;
     color:#2E1B08;
     text-shadow:0 0 3px rgba(246,233,203,.95), 0 1px 2px rgba(246,233,203,.9);
   }
 
-  /* =====★ 脚印 ★===== */
+  /* =================★ 脚印 =================*/
   .fpw{position:absolute;left:0;top:0;width:0;height:0;}
   .fp{
     position:absolute; left:-3.5px; top:-8px; width:7px; height:16px;
@@ -97,19 +127,21 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/* ================= 可调参数（都在这里改） ================= */
+/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+   【改这里 2】所有可调参数都在这儿
+   ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
 var CFG={
-  name:'燕知春',
-  showFootprints:true,   // 不要脚印 → 改成 false
-  trailLife:9000,        // 脚印留多久（毫秒）
-  stepMeters:3,          // 每走多少米画一只脚印
-  minMoveMeters:2.5,     // 移动超过这个距离才开始留脚印
-  maxStepsPerUpdate:8,   // 单次最多补几只脚印
-  maxFootprints:70,      // 屏幕上最多同时存在几只（防卡顿）
-  zoom:17
+  name:'燕知春',          /* ★ 你的名字（改完记得去上面 text= 那里也加上） */
+  showFootprints:true,    /* ★ 不要脚印 → false */
+  trailLife:9000,         /* ★ 脚印留多久(毫秒)。想留长路 → 20000 或 60000 */
+  stepMeters:3,           /* ★ 脚印密度。太密改 5 或 6，太疏改 1.5 */
+  minMoveMeters:2.5,      /* 站着不动不留脚印 */
+  maxStepsPerUpdate:8,
+  maxFootprints:70,       /* 屏幕上最多几只脚印（防卡顿） */
+  zoom:17                 /* ★ 缩放级别，17~18 才能看见建筑 */
 };
 
-/* ================= 瓦片源（德国源默认放第一个） ================= */
+/* ================= 瓦片源（德国源默认第一个，实测能开） ================= */
 var SOURCES=[
   {n:'OSM 德国', u:'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
    a:'&copy; OpenStreetMap contributors', mz:18},
@@ -123,7 +155,7 @@ var SOURCES=[
 var si=0, tileLayer=null;
 function $(id){return document.getElementById(id);}
 
-/* ================= 地图 ================= */
+/* ================= 初始化地图 ================= */
 var HOME=[31.970430, 118.746435];
 var map=L.map('map-container',{
   zoomControl:false, attributionControl:true,
@@ -146,7 +178,6 @@ function addTiles(){
 var meMarker=null, lastFix=null, lastFp=0, sideFlip=1;
 var fpList=[], follow=true;
 
-/* 用户自己拖地图 → 暂停自动跟随 */
 map.on('dragstart',function(){ follow=false; });
 
 /* ================= 定位（OSM 是 WGS-84，直接用，不转换） ================= */
@@ -186,7 +217,7 @@ function onErr(e){
   $('status').innerHTML='❌ '+m;
 }
 
-/* ================= 名字（只有文字） ================= */
+/* ================= 名字（只有墨字，没圈没点） ================= */
 var nameIcon=L.divIcon({
   className:'',
   html:'<div class="nm">'+CFG.name+'</div>',
@@ -201,7 +232,7 @@ function ensureMarker(ll){
 /* ================= 脚印 ================= */
 function walkTrail(a,b){
   var now=Date.now();
-  if(now-lastFp<800) return;          // 别刷太密
+  if(now-lastFp<800) return;
   lastFp=now;
 
   var d=dist(a[0],a[1],b[0],b[1]);
@@ -214,9 +245,9 @@ function walkTrail(a,b){
     var lat=a[0]+(b[0]-a[0])*f;
     var lng=a[1]+(b[1]-a[1])*f;
 
-    sideFlip=-sideFlip;                       // 左右脚交替
+    sideFlip=-sideFlip;
     var perp=(brg+90)*Math.PI/180;
-    var offM=1.7*sideFlip;                    // 侧向偏移（米）
+    var offM=1.7*sideFlip;
     var mLat=111320;
     var mLng=111320*Math.cos(lat*Math.PI/180);
     var dLat=Math.cos(perp)*offM/mLat;
@@ -243,7 +274,7 @@ function addFoot(ll,brg){
   }, CFG.trailLife+200);
 }
 
-/* ================= 方位角（度，正北为0，顺时针） ================= */
+/* ================= 方位角 ================= */
 function bearing(lat1,lng1,lat2,lng2){
   var r=Math.PI/180;
   var y=Math.sin((lng2-lng1)*r)*Math.cos(lat2*r);

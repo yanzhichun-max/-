@@ -52,7 +52,6 @@
   #recenter .ic::after{content:'';position:absolute;left:50%;top:50%;
     width:3px;height:3px;margin:-1.5px 0 0 -1.5px;background:#6B4A22;border-radius:50%;}
 
-  /* ============ 名字/房间号 设置面板 ============ */
   #setup{position:fixed;inset:0;z-index:300;display:flex;
     align-items:center;justify-content:center;padding:24px;
     background:rgba(52,35,16,.72);backdrop-filter:blur(2px);}
@@ -90,12 +89,33 @@
     border:2px solid #A0713C;border-radius:5px;padding:12px 30px;
     font-family:Georgia,serif;font-size:15px;cursor:pointer;}
 
-  .nm{position:absolute;left:0;bottom:8px;transform:translateX(-50%);white-space:nowrap;
+  /* ======================================================
+     ★★★ 名字牌：花纹边框 ★★★
+     ====================================================== */
+  .nm{
+    position:absolute; left:0; bottom:12px; transform:translateX(-50%);
+    white-space:nowrap;
+
     font-family:"Long Cang","Zhi Mang Xing","Ma Shan Zheng",
                 "STKaiti","Kaiti SC","KaiTi",Georgia,serif;
-    font-size:22px;font-weight:400;letter-spacing:2px;color:#2E1B08;
-    text-shadow:0 0 3px rgba(246,233,203,.95),0 1px 2px rgba(246,233,203,.9);}
-  .nm.other{opacity:.85;}
+    font-size:22px; font-weight:400; letter-spacing:2px;
+    color:#2E1B08;
+    line-height:1.2;
+
+    /* ★ 边框粗细：想更粗/更细就改这个 10px（三处要一起改：border / border-image-width） */
+    border:10px solid transparent;
+    border-image-source:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='40' viewBox='0 0 60 40'%3E%3Cg fill='none' stroke='%23111' stroke-width='2.2'%3E%3Crect x='1.4' y='1.4' width='57.2' height='37.2'/%3E%3C/g%3E%3Cg fill='none' stroke='%23111' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M12 4.5H48'/%3E%3Cpath d='M12 35.5H48'/%3E%3Cpath d='M4.5 12V28'/%3E%3Cpath d='M55.5 12V28'/%3E%3Cpath d='M12 4.5 A7.5 7.5 0 0 1 4.5 12'/%3E%3Cpath d='M48 4.5 A7.5 7.5 0 0 0 55.5 12'/%3E%3Cpath d='M4.5 28 A7.5 7.5 0 0 1 12 35.5'/%3E%3Cpath d='M55.5 28 A7.5 7.5 0 0 0 48 35.5'/%3E%3C/g%3E%3Cg fill='%23111'%3E%3Ccircle cx='12' cy='4.5' r='1.5'/%3E%3Ccircle cx='48' cy='4.5' r='1.5'/%3E%3Ccircle cx='4.5' cy='12' r='1.5'/%3E%3Ccircle cx='55.5' cy='12' r='1.5'/%3E%3Ccircle cx='4.5' cy='28' r='1.5'/%3E%3Ccircle cx='55.5' cy='28' r='1.5'/%3E%3Ccircle cx='12' cy='35.5' r='1.5'/%3E%3Ccircle cx='48' cy='35.5' r='1.5'/%3E%3C/g%3E%3C/svg%3E");
+    border-image-slice:18;
+    border-image-width:10px;
+    border-image-repeat:stretch;
+
+    /* ★ 底色：跟地图卷轴色一致，.94 是透明度（1 = 完全不透） */
+    background:rgba(245,232,203,.94);
+    padding:3px 12px;
+    box-shadow:0 2px 8px rgba(60,35,10,.28);
+    text-shadow:0 0 2px rgba(255,252,240,.9);
+  }
+  .nm.other{opacity:.9;}
 
   .fpw{position:absolute;left:0;top:0;width:0;height:0;}
   .fp{position:absolute;left:-2.5px;top:-4.5px;width:5px;height:9px;
@@ -119,7 +139,6 @@
 <button id="recenter" class="panel"><span class="ic"></span>回到我的位置</button>
 <div class="status panel" id="status">正在加载魔法地图…</div>
 
-<!-- ============ 首次打开：填名字和房间号 ============ -->
 <div id="setup">
   <div class="box panel">
     <h2>活点地图</h2>
@@ -145,44 +164,22 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt@5/dist/mqtt.min.js"></script>
 <script>
-/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-   【改这里】默认参数（网址参数 / 手动填写 会覆盖掉它们）
-   ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+/* ★★★ 可调参数 ★★★ */
 var CFG={
-  name:'',              /* 留空 → 首次打开会弹窗让你填 */
-  room:'',              /* 留空 → 首次打开会弹窗让你填 */
-
+  name:'', room:'',
   broker:'wss://broker.emqx.io:8084/mqtt',
   baseTopic:'hp/mm',
-
-  pubInterval:4000,
-  pubHeartbeat:20000,
-  pubMoveMeters:8,
-
-  staleHide:45000,
-  staleRemove:300000,
-
+  pubInterval:4000, pubHeartbeat:20000, pubMoveMeters:8,
+  staleHide:45000, staleRemove:300000,
   showFootprints:true,
-  gapPx:14,
-  gapPxMax:70,
-  gapCurve:0.5,
-  twoFeet:true,
-  swayPx:4,
-
-  walkSpeed:1.4,
-  minSpeed:0.9,
-  speedSmooth:0.5,
-  bearingSmooth:0.6,
-
-  jumpMeters:150,
-  gapResetMs:6000,
-  maxFeetPerFix:4,
-  trailLife:60000,
-  maxFootprints:200,
+  gapPx:14, gapPxMax:70, gapCurve:0.5,
+  twoFeet:true, swayPx:4,
+  walkSpeed:1.4, minSpeed:0.9, speedSmooth:0.5, bearingSmooth:0.6,
+  jumpMeters:150, gapResetMs:6000, maxFeetPerFix:4,
+  trailLife:60000, maxFootprints:200,
   zoom:17
 };
 
-/* ============ 读取 网址参数 / 本地记忆 ============ */
 function qs(k){
   try{
     var m=new RegExp('[?&]'+k+'=([^&]*)').exec(location.search);
@@ -197,7 +194,6 @@ function load(k){ try{ return localStorage.getItem(k)||''; }catch(e){ return '';
 CFG.name = qs('n') || load('mm_name') || CFG.name;
 CFG.room = qs('r') || load('mm_room') || CFG.room;
 
-/* ============ 瓦片源 ============ */
 var SOURCES=[
   {n:'OSM 德国', u:'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
    a:'&copy; OpenStreetMap contributors', mz:18},
@@ -211,7 +207,6 @@ var SOURCES=[
 var si=0, tileLayer=null, tileErr=0, lastSwitch=0;
 function $(id){return document.getElementById(id);}
 
-/* ============ 地图 ============ */
 var HOME=[31.970430, 118.746435];
 var map=L.map('map-container',{
   zoomControl:false, attributionControl:true,
@@ -235,7 +230,6 @@ function addTiles(){
   tileLayer.on('tileload',function(){ tileErr=0; });
 }
 
-/* ============ 人员 ============ */
 var myId='mm_'+Math.random().toString(36).slice(2,10);
 var people={}, follow=true, mqttOk=false, booted=false;
 
@@ -249,7 +243,6 @@ function initMe(){ if(CFG.name && !people[CFG.name]) people[CFG.name]=newPerson(
 map.on('dragstart',function(){ follow=false; });
 map.on('zoomend',function(){ for(var k in people) people[k].pending=0; });
 
-/* ============ 像素 ↔ 米 ============ */
 function mPerPixel(){
   var lat=map.getCenter().lat;
   return 156543.03392*Math.cos(lat*Math.PI/180)/Math.pow(2,map.getZoom());
@@ -267,7 +260,6 @@ function swayMeters(mpp,sp){
   return CFG.swayPx*mpp*k;
 }
 
-/* ============ 处理一个人的新坐标 ============ */
 var fpList=[];
 function processFix(p,lat,lng,t,acc,devSpeed){
   var first=(p.lat===null);
@@ -323,7 +315,6 @@ function layTrail(p,alat,alng,blat,blng,mpp){
   if(p.pending>gap) p.pending=gap;
 }
 
-/* ============ 名字标记 ============ */
 function esc(s){
   return String(s).replace(/[&<>"']/g,function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
@@ -338,7 +329,6 @@ function ensureMarker(p){
     zIndexOffset:p.isMe?1000:900}).addTo(map);
 }
 
-/* ============ 脚印 ============ */
 function addFoot(ll,brg){
   var html='<div class="fpw" style="transform:rotate('+brg.toFixed(1)+'deg)">'+
              '<div class="fp" style="animation-duration:'+CFG.trailLife+'ms"></div></div>';
@@ -369,7 +359,6 @@ function smoothBearing(p,brg){
   return (Math.atan2(p.bSin,p.bCos)*180/Math.PI+360)%360;
 }
 
-/* ============ 数学 ============ */
 function bearing(lat1,lng1,lat2,lng2){
   var r=Math.PI/180;
   var y=Math.sin((lng2-lng1)*r)*Math.cos(lat2*r);
@@ -390,14 +379,12 @@ function speedLabel(s){
   return t+' '+k.toFixed(0)+' km/h';
 }
 
-/* ============ 字体：按名字动态生成（只下载用到的字） ============ */
 function loadFont(){
   var txt=CFG.name+'MischiefManaged回到我的位置开始你的名字房间号';
   $('fontLink').href='https://fonts.loli.net/css2?family=Long+Cang&family=Zhi+Mang+Xing'
     +'&family=Ma+Shan+Zheng&text='+encodeURIComponent(txt)+'&display=swap';
 }
 
-/* ============ MQTT ============ */
 var client=null, lastPub=0, lastPubLL=null;
 function topicPos(){ return CFG.baseTopic+'/'+CFG.room+'/pos'; }
 
@@ -424,7 +411,7 @@ function startNet(){
     var d=null;
     try{ d=JSON.parse(payload.toString()); }catch(e){ return; }
     if(!d || !d.n || d.i===myId) return;
-    if(d.n===CFG.name && d.i!==myId) return;   /* 防止有人和我重名 */
+    if(d.n===CFG.name) return;
     var lat=+d.a, lng=+d.o, t=+d.t;
     if(!isFinite(lat)||!isFinite(lng)) return;
     if(Math.abs(lat)>90||Math.abs(lng)>180) return;
@@ -446,7 +433,6 @@ function publishPos(lat,lng,t,acc){
   }catch(e){}
 }
 
-/* ============ 我的定位 ============ */
 function requestLocation(){
   if(!navigator.geolocation){ $('status').textContent='❌ 设备不支持定位'; return; }
   $('status').textContent='正在施展追踪咒语…';
@@ -476,7 +462,6 @@ function onErr(e){
   $('status').innerHTML='❌ '+m;
 }
 
-/* ============ 心跳 & 清理 ============ */
 setInterval(function(){
   var p=me();
   if(p && p.lat!==null && Date.now()-lastPub>CFG.pubHeartbeat){
@@ -500,7 +485,6 @@ setInterval(function(){
   refreshStatus();
 },5000);
 
-/* ============ 状态栏 ============ */
 var netMsg='未联机';
 function setNet(s){ netMsg=s; refreshStatus(); }
 
@@ -521,7 +505,6 @@ function refreshStatus(){
     '精度 ±'+(p.acc==null?'?':p.acc)+'m　'+p.lat.toFixed(6)+', '+p.lng.toFixed(6);
 }
 
-/* ============ 按钮 ============ */
 $('recenter').onclick=function(){
   follow=true;
   var p=me(); if(p&&p.lat!==null) map.setView([p.lat,p.lng],CFG.zoom);
@@ -529,20 +512,16 @@ $('recenter').onclick=function(){
 $('authBtn').onclick=requestLocation;
 document.addEventListener('gesturestart',function(e){e.preventDefault();});
 
-/* ============ 设置面板 ============ */
 function randRoom(){
   var s='', c='abcdefghijkmnpqrstuvwxyz23456789';
   for(var i=0;i<5;i++) s+=c[Math.floor(Math.random()*c.length)];
   return 'mm-'+s;
 }
-
 function showSetup(){
   $('setup').classList.remove('hide');
   $('inName').value=CFG.name||'';
   $('inRoom').value=CFG.room||randRoom();
-  $('inName').focus();
 }
-
 function submitSetup(){
   var n=$('inName').value.trim();
   var r=$('inRoom').value.trim().toLowerCase().replace(/\s+/g,'');
@@ -556,25 +535,21 @@ function submitSetup(){
   $('setup').classList.add('hide');
   boot();
 }
-
 $('btnStart').onclick=submitSetup;
 $('inRoom').addEventListener('keydown',function(e){ if(e.key==='Enter') submitSetup(); });
 
-/* ============ 启动 ============ */
 function boot(){
   if(booted) return;
   booted=true;
   initMe();
   loadFont();
   startNet();
-  $('auth').classList.remove('hide');   /* 显示"授权定位" */
+  $('auth').classList.remove('hide');
   refreshStatus();
 }
 
 if(CFG.name && CFG.room) boot();
 else showSetup();
-
-/* 想重新设置：网址后面加 ?reset=1 */
 if(qs('reset')==='1'){ showSetup(); booted=false; }
 </script>
 </body>

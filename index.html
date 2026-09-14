@@ -5,16 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>活点地图 · Marauder's Map</title>
 
-<!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ -->
-<!-- 【改这里 1】手写墨字字体                                              -->
-<!--  · text= 后面 = 页面上所有会用到手写字体的字，一个字都不能漏！        -->
-<!--  · 改名字了，这里也要一起加进去，否则新字显示不出来                  -->
-<!--  · 加载不出来就换镜像：fonts.loli.net  →  fonts.lug.ustc.edu.cn      -->
-<!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ -->
+<!-- ★【改这里 1】字体：text= 后面 = 所有会用到手写体的字，一个都不能漏 ★ -->
 <link rel="preconnect" href="https://fonts.loli.net" crossorigin>
 <link rel="stylesheet"
   href="https://fonts.loli.net/css2?family=Long+Cang&amp;family=Zhi+Mang+Xing&amp;family=Ma+Shan+Zheng&amp;text=燕知春MischiefManaged&amp;display=swap">
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -33,27 +27,23 @@
   .vignette{position:fixed;inset:0;z-index:11;pointer-events:none;
     box-shadow:inset 0 0 170px rgba(105,68,22,.5);}
 
-  /* ---------- 标题 ---------- */
   .title{position:fixed;top:18px;left:18px;z-index:100;color:#3A2410;pointer-events:none;
     text-shadow:0 1px 2px rgba(255,250,235,.7);}
   .title h1{
-    /* ★★★ 标题字体在这里：换风格就把想用的挪到最前面 ★★★ */
+    /* ★【改这里 2】标题字体：换风格就把想用的挪最前面 ★ */
     font-family:"Ma Shan Zheng","STXingkai","Long Cang",Georgia,serif;
-    font-size:26px; font-weight:400; letter-spacing:3px;
-    border-bottom:2px solid #6B4A22; padding-bottom:4px; display:inline-block;
-  }
+    font-size:26px;font-weight:400;letter-spacing:3px;
+    border-bottom:2px solid #6B4A22;padding-bottom:4px;display:inline-block;}
   .title p{font-family:Georgia,"Songti SC",serif;
     font-size:12px;font-style:italic;opacity:.8;margin-top:5px;}
 
-  /* ---------- 状态栏 ---------- */
   .status{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:100;
     background:rgba(246,233,203,.95);border:1px solid #6B4A22;border-radius:4px;
-    padding:7px 12px;font-size:11px;line-height:1.6;color:#3A2410;
-    font-family:Consolas,monospace;white-space:nowrap;
+    padding:7px 12px;font-size:11px;line-height:1.7;color:#3A2410;
+    font-family:Consolas,monospace;white-space:nowrap;text-align:center;
     box-shadow:0 3px 12px rgba(60,35,10,.25);}
   .status b{color:#8B4513;}
 
-  /* ---------- 按钮 ---------- */
   .btn{position:fixed;left:16px;z-index:100;
     background:linear-gradient(#8B5A2B,#5D3A1A);color:#F6E9CB;border:2px solid #A0713C;
     border-radius:5px;padding:9px 13px;font-family:Georgia,serif;font-size:12px;cursor:pointer;
@@ -62,7 +52,6 @@
   #recenter{bottom:16px;}
   #srcBtn{bottom:62px;}
 
-  /* ---------- 授权提示 ---------- */
   .auth{position:fixed;inset:auto 0 0 0;z-index:200;text-align:center;color:#F6E9CB;
     padding:70px 20px 95px;transition:opacity .6s;
     background:linear-gradient(to top,rgba(52,35,16,.96),rgba(52,35,16,0));}
@@ -72,31 +61,23 @@
     border:2px solid #A0713C;border-radius:5px;padding:12px 30px;
     font-family:Georgia,serif;font-size:15px;cursor:pointer;}
 
-  /* =================★ 名字：手写墨字 =================*/
+  /* ============ 名字：手写墨字 ============ */
   .nm{
-    position:absolute; left:0; bottom:8px; transform:translateX(-50%);
+    position:absolute;left:0;bottom:8px;transform:translateX(-50%);
     white-space:nowrap;
-
-    /* ★★★ 名字字体在这里：换风格就把想用的挪到最前面 ★★★
-       Long Cang   = 细笔随性（最像电影细墨字）
-       Zhi Mang Xing = 行书连笔
-       Ma Shan Zheng = 毛笔楷书（偏粗）
-       后面几个是加载失败时的备用系统字体 */
+    /* ★【改这里 3】名字字体：换风格就把想用的挪最前面 ★
+       Long Cang 细笔随性 | Zhi Mang Xing 行书 | Ma Shan Zheng 毛笔 */
     font-family:"Long Cang","Zhi Mang Xing","Ma Shan Zheng",
                 "STKaiti","Kaiti SC","KaiTi",Georgia,serif;
-
-    font-size:22px;      /* ★ 手写字偏细，觉得小就调大，如 26px */
-    font-weight:400;     /* ★ 手写体千万别加粗，会糊成一团 */
-    letter-spacing:2px;
-    color:#2E1B08;
-    text-shadow:0 0 3px rgba(246,233,203,.95), 0 1px 2px rgba(246,233,203,.9);
+    font-size:22px;font-weight:400;letter-spacing:2px;color:#2E1B08;
+    text-shadow:0 0 3px rgba(246,233,203,.95),0 1px 2px rgba(246,233,203,.9);
   }
 
-  /* =================★ 脚印 =================*/
+  /* ============ 脚印 ============ */
   .fpw{position:absolute;left:0;top:0;width:0;height:0;}
   .fp{
-    position:absolute; left:-3.5px; top:-8px; width:7px; height:16px;
-    background:radial-gradient(ellipse at 50% 35%, #2E1B08 0%, #2E1B08 45%, rgba(46,27,8,0) 92%);
+    position:absolute;left:-3.5px;top:-8px;width:7px;height:16px;
+    background:radial-gradient(ellipse at 50% 35%,#2E1B08 0%,#2E1B08 45%,rgba(46,27,8,0) 92%);
     border-radius:50% 50% 42% 42% / 58% 58% 42% 42%;
     animation:fpFade 9s ease-out forwards;
   }
@@ -127,21 +108,39 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-   【改这里 2】所有可调参数都在这儿
-   ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+   【改这里 4】全部可调参数
+   ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
 var CFG={
-  name:'燕知春',          /* ★ 你的名字（改完记得去上面 text= 那里也加上） */
-  showFootprints:true,    /* ★ 不要脚印 → false */
-  trailLife:9000,         /* ★ 脚印留多久(毫秒)。想留长路 → 20000 或 60000 */
-  stepMeters:3,           /* ★ 脚印密度。太密改 5 或 6，太疏改 1.5 */
-  minMoveMeters:2.5,      /* 站着不动不留脚印 */
-  maxStepsPerUpdate:8,
-  maxFootprints:70,       /* 屏幕上最多几只脚印（防卡顿） */
-  zoom:17                 /* ★ 缩放级别，17~18 才能看见建筑 */
+  name:'燕知春',              /* ★ 你的名字（改完记得同时改上面 text=） */
+  showFootprints:true,        /* ★ 不要脚印 → false */
+
+  /* —— 脚印间距：随速度自适应 —— */
+  spacingWalk:3.0,            /* ★ 走路时的脚印间距(米)。想更密→2，更疏→5 */
+  spacingMax:22,              /* ★ 高速时最大间距(米)。太稀→调小到 14 */
+  spacingCurve:0.7,           /* ★ 间距随速度增长的程度：0.5快 0.7中 1线性 */
+  walkSpeed:1.4,              /* 判定"走路"的参考速度(m/s)，一般不用改 */
+
+  /* —— 速度判定 —— */
+  minSpeed:0.7,               /* ★ 低于此速度(≈2.5km/h)视为静止，不留脚印。
+                                     站着不动还冒脚印 → 调到 1.2 */
+  noiseFloor:4.0,             /* 最小间距下限(米)，防止慢速时脚印太密 */
+  speedSmooth:0.5,            /* 速度平滑 0~1，越大越跟手、越小越稳 */
+  bearingSmooth:0.6,          /* 方向平滑 0~1 */
+
+  /* —— 安全阀：防止 GPS 跳点/断连画出一串密集脚印 —— */
+  jumpMeters:150,             /* 单次跳这么远 → 判定为异常，不画 */
+  gapResetMs:6000,            /* 定位中断超这么久 → 重新起算 */
+  maxFeetPerFix:4,            /* 单次定位最多补几只脚印 */
+
+  /* —— 脚印本身 —— */
+  trailLife:9000,             /* ★ 脚印留多久(ms)。想留长路→30000 */
+  maxFootprints:90,           /* 同屏脚印上限（防卡顿） */
+  swayWalk:1.7,               /* 左右脚交替的侧向幅度(米)，速度越快自动越小 */
+  zoom:17                     /* 17~18 才能看见建筑 */
 };
 
-/* ================= 瓦片源（德国源默认第一个，实测能开） ================= */
+/* ================= 瓦片源（德国源默认第一个） ================= */
 var SOURCES=[
   {n:'OSM 德国', u:'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
    a:'&copy; OpenStreetMap contributors', mz:18},
@@ -155,7 +154,7 @@ var SOURCES=[
 var si=0, tileLayer=null;
 function $(id){return document.getElementById(id);}
 
-/* ================= 初始化地图 ================= */
+/* ================= 地图 ================= */
 var HOME=[31.970430, 118.746435];
 var map=L.map('map-container',{
   zoomControl:false, attributionControl:true,
@@ -175,12 +174,13 @@ function addTiles(){
 }
 
 /* ================= 状态 ================= */
-var meMarker=null, lastFix=null, lastFp=0, sideFlip=1;
-var fpList=[], follow=true;
+var meMarker=null, lastFix=null, lastT=0, follow=true;
+var speed=0, pending=0, sideFlip=1, fpList=[];
+var bSin=null, bCos=null;
 
 map.on('dragstart',function(){ follow=false; });
 
-/* ================= 定位（OSM 是 WGS-84，直接用，不转换） ================= */
+/* ================= 定位 ================= */
 function requestLocation(){
   if(!navigator.geolocation){ $('status').textContent='❌ 设备不支持定位'; return; }
   $('status').textContent='正在施展追踪咒语…';
@@ -191,25 +191,75 @@ function requestLocation(){
 
 function onFix(pos){
   var lat=pos.coords.latitude, lng=pos.coords.longitude;
-  var acc=(pos.coords.accuracy!=null)?Math.round(pos.coords.accuracy):'?';
+  var acc=(pos.coords.accuracy!=null)?Math.round(pos.coords.accuracy):null;
+  var t=pos.timestamp||Date.now();
   var ll=[lat,lng];
 
   $('auth').classList.add('hide');
   $('recenter').style.display='block';
-  $('status').innerHTML='精度 <b>±'+acc+'m</b>　'+lat.toFixed(6)+', '+lng.toFixed(6);
 
+  /* ---------- 1. 估算速度 ---------- */
+  if(lastFix){
+    var dt=(t-lastT)/1000;
+    if(dt>0.2 && dt<CFG.gapResetMs/1000){
+      var s=dist(lastFix[0],lastFix[1],lat,lng)/dt;
+      var dev=pos.coords.speed;
+      /* 设备上报速度更准（静止时≈0），优先用它 */
+      if(dev!=null && isFinite(dev) && dev>=0) s=(s+dev*2)/3;
+      speed=speed*(1-CFG.speedSmooth)+s*CFG.speedSmooth;
+    }else if(dt>=CFG.gapResetMs/1000){
+      speed=0; pending=0;
+    }
+  }
+  lastT=t;
+
+  /* ---------- 2. 间距 & 噪声下限 ---------- */
+  var noise=Math.min(12, Math.max(CFG.noiseFloor, (acc||8)*0.5));
+  var sp=Math.max(spacingFor(speed), noise);
+
+  /* ---------- 3. 落脚印 ---------- */
+  if(lastFix && CFG.showFootprints){
+    var d=dist(lastFix[0],lastFix[1],lat,lng);
+
+    if(d>CFG.jumpMeters){
+      pending=0;                                  /* 疑似跳点，不画 */
+    }else if(speed<CFG.minSpeed){
+      pending=0;                                  /* 视为静止，不画 */
+    }else{
+      pending+=d;
+      var n=Math.floor(pending/sp);
+      if(n>CFG.maxFeetPerFix) n=CFG.maxFeetPerFix;
+      if(n>0){
+        pending-=n*sp;
+        if(pending<0) pending=0;
+        if(pending>sp*CFG.maxFeetPerFix) pending=sp*CFG.maxFeetPerFix;
+
+        var brg=smoothBearing(bearing(lastFix[0],lastFix[1],lat,lng));
+        var sway=Math.max(0.15, Math.min(1, CFG.walkSpeed/Math.max(speed,0.3)));
+        for(var i=1;i<=n;i++){
+          var f=i/(n+1);
+          var p=[lastFix[0]+(lat-lastFix[0])*f, lastFix[1]+(lng-lastFix[1])*f];
+          sideFlip=-sideFlip;
+          addFoot(sideOffset(p,brg,CFG.swayWalk*sway), brg);
+        }
+      }
+    }
+  }
+
+  /* ---------- 4. 移动名字 / 跟随 ---------- */
   if(!lastFix){
     map.setView(ll,CFG.zoom);
     ensureMarker(ll);
   }else{
-    var d=dist(lastFix[0],lastFix[1],lat,lng);
-    if(d>CFG.minMoveMeters){
-      if(CFG.showFootprints) walkTrail(lastFix,ll);
-      if(follow) map.panTo(ll);
-    }
     ensureMarker(ll);
+    if(follow && speed>=CFG.minSpeed) map.panTo(ll,{animate:true,duration:0.9});
   }
   lastFix=ll;
+
+  /* ---------- 5. 状态栏 ---------- */
+  $('status').innerHTML=
+    '<b>'+speedLabel(speed)+'</b>　脚印间距 '+sp.toFixed(0)+'m<br>'+
+    '精度 ±'+(acc==null?'?':acc)+'m　'+lat.toFixed(6)+', '+lng.toFixed(6);
 }
 
 function onErr(e){
@@ -217,46 +267,32 @@ function onErr(e){
   $('status').innerHTML='❌ '+m;
 }
 
-/* ================= 名字（只有墨字，没圈没点） ================= */
+/* ========== 间距公式：间距 = 走路间距 × (速度/走路速度)^指数 ========== */
+function spacingFor(s){
+  var v=Math.max(s,0.3);
+  var sp=CFG.spacingWalk*Math.pow(v/CFG.walkSpeed, CFG.spacingCurve);
+  return Math.min(CFG.spacingMax, Math.max(0.8, sp));
+}
+
+/* ========== 速度文字 ========== */
+function speedLabel(s){
+  var k=s*3.6;
+  var t = k<1?'静止' : k<7?'步行' : k<20?'骑行' : '驾车';
+  return t+' '+k.toFixed(0)+' km/h';
+}
+
+/* ========== 名字（只有墨字） ========== */
 var nameIcon=L.divIcon({
   className:'',
   html:'<div class="nm">'+CFG.name+'</div>',
   iconSize:[0,0], iconAnchor:[0,0]
 });
-
 function ensureMarker(ll){
   if(meMarker){ meMarker.setLatLng(ll); return; }
   meMarker=L.marker(ll,{icon:nameIcon,interactive:false,zIndexOffset:1000}).addTo(map);
 }
 
-/* ================= 脚印 ================= */
-function walkTrail(a,b){
-  var now=Date.now();
-  if(now-lastFp<800) return;
-  lastFp=now;
-
-  var d=dist(a[0],a[1],b[0],b[1]);
-  var brg=bearing(a[0],a[1],b[0],b[1]);
-  var steps=Math.min(CFG.maxStepsPerUpdate,
-                     Math.max(1, Math.round(d/CFG.stepMeters)));
-
-  for(var i=1;i<=steps;i++){
-    var f=i/(steps+1);
-    var lat=a[0]+(b[0]-a[0])*f;
-    var lng=a[1]+(b[1]-a[1])*f;
-
-    sideFlip=-sideFlip;
-    var perp=(brg+90)*Math.PI/180;
-    var offM=1.7*sideFlip;
-    var mLat=111320;
-    var mLng=111320*Math.cos(lat*Math.PI/180);
-    var dLat=Math.cos(perp)*offM/mLat;
-    var dLng=Math.sin(perp)*offM/mLng;
-
-    addFoot([lat+dLat, lng+dLng], brg);
-  }
-}
-
+/* ========== 脚印 ========== */
 function addFoot(ll,brg){
   var html='<div class="fpw" style="transform:rotate('+brg.toFixed(1)+'deg)">'+
              '<div class="fp" style="animation-duration:'+CFG.trailLife+'ms"></div>'+
@@ -265,16 +301,34 @@ function addFoot(ll,brg){
   var m=L.marker(ll,{icon:ic,interactive:false,zIndexOffset:100}).addTo(map);
 
   fpList.push(m);
-  if(fpList.length>CFG.maxFootprints){
-    var old=fpList.shift(); map.removeLayer(old);
-  }
+  if(fpList.length>CFG.maxFootprints) map.removeLayer(fpList.shift());
   setTimeout(function(){
     map.removeLayer(m);
     var i=fpList.indexOf(m); if(i>-1) fpList.splice(i,1);
   }, CFG.trailLife+200);
 }
 
-/* ================= 方位角 ================= */
+/* ========== 侧向偏移（左右脚） ========== */
+function sideOffset(p,brg,offM){
+  var perp=(brg+90)*Math.PI/180;
+  var mLat=111320, mLng=111320*Math.cos(p[0]*Math.PI/180);
+  return [p[0]+Math.cos(perp)*offM/mLat, p[1]+Math.sin(perp)*offM/mLng];
+}
+
+/* ========== 方向平滑（避免高速时脚印乱转） ========== */
+function smoothBearing(brg){
+  var r=brg*Math.PI/180, sn=Math.sin(r), cs=Math.cos(r);
+  if(bSin===null){ bSin=sn; bCos=cs; }
+  else{
+    var k=CFG.bearingSmooth;
+    bSin=bSin*(1-k)+sn*k; bCos=bCos*(1-k)+cs*k;
+    var m=Math.sqrt(bSin*bSin+bCos*bCos)||1;
+    bSin/=m; bCos/=m;
+  }
+  return (Math.atan2(bSin,bCos)*180/Math.PI+360)%360;
+}
+
+/* ========== 方位角 ========== */
 function bearing(lat1,lng1,lat2,lng2){
   var r=Math.PI/180;
   var y=Math.sin((lng2-lng1)*r)*Math.cos(lat2*r);
@@ -283,7 +337,7 @@ function bearing(lat1,lng1,lat2,lng2){
   return (Math.atan2(y,x)/r+360)%360;
 }
 
-/* ================= 距离（米） ================= */
+/* ========== 距离（米） ========== */
 function dist(lat1,lng1,lat2,lng2){
   var R=6371000, r=Math.PI/180;
   var dLat=(lat2-lat1)*r, dLng=(lng2-lng1)*r;
@@ -292,13 +346,12 @@ function dist(lat1,lng1,lat2,lng2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
-/* ================= 按钮 ================= */
+/* ========== 按钮 ========== */
 $('srcBtn').onclick=function(){
   si=(si+1)%SOURCES.length;
   if(tileLayer) map.removeLayer(tileLayer);
   addTiles();
   $('srcBtn').textContent='瓦片源：'+SOURCES[si].n;
-  $('status').textContent='已切换：'+SOURCES[si].n;
 };
 $('recenter').onclick=function(){
   follow=true;
